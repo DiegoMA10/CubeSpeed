@@ -1,0 +1,14 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "timers",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "cube", "order": "ASCENDING" },
+        { "fieldPath": "tagId", "order": "ASCENDING" },
+        { "fieldPath": "timestamp", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
