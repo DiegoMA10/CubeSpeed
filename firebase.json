@@ -2,7 +2,9 @@
   "functions": {
     "source": "functions",
     "codebase": "default",
-    "runtime": "python311",  // Asegúrate de agregar esta línea
+    "runtime": "nodejs22",
+    "region": "us-central1",
+    "v2": true,
     "ignore": [
       "venv",
       ".git",
