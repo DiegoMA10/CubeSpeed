@@ -12,40 +12,77 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
-private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
-)
+/**
+ * Enum class representing the available theme types in the app
+ */
+enum class AppThemeType {
+    BLUE, LIGHT, DARK
+}
 
-private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
+// Blue theme (light)
+private val BlueColorScheme = lightColorScheme(
+    primary = TimerScreenBackground,  // Using TimerScreen background color
+    secondary = TimerScreenAccent,    // Using TimerScreen accent color
+    tertiary = BlueTertiary,
+    background = BlueBackground,
+    surface = BlueSurface,
     onPrimary = Color.White,
     onSecondary = Color.White,
     onTertiary = Color.White,
+
     onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+    onSurface = Color(0xFF1C1B1F)
+)
+
+// Light theme
+private val LightColorScheme = lightColorScheme(
+    primary = Color.White,
+    secondary = Color.Gray,
+    tertiary = Color.Gray,
+    background = Color.White,
+    surface = Color.White,
+    onPrimary = Color.Black,
+    onSecondary = Color.White,
+    onTertiary = Color.Black,
+    onBackground = Color(0xFF1C1B1F),
+    onSurface = Color(0xFF1C1B1F)
+)
+
+// Dark theme
+private val DarkColorScheme = darkColorScheme(
+    primary = Color.Black,
+    secondary = DarkSecondary,
+    tertiary = DarkTertiary,
+    background = Color.Black,
+    surface = DarkSurface,
+    onPrimary = Color.White,
+    onSecondary = Color.White,
+    onTertiary = Color.White,
+    onBackground = Color.White,
+    onSurface = Color.White
 )
 
 // Composition local for theme preference
-val LocalThemePreference = staticCompositionLocalOf { false }
+val LocalThemePreference = staticCompositionLocalOf<AppThemeType> { AppThemeType.BLUE }
 
 /**
  * Get the current theme preference from the composition local
  */
-val isAppInDarkTheme: Boolean
+val currentAppTheme: AppThemeType
     @Composable
     @ReadOnlyComposable
     get() = LocalThemePreference.current
+
+/**
+ * Check if the current theme is dark
+ */
+val isAppInDarkTheme: Boolean
+    @Composable
+    @ReadOnlyComposable
+    get() = LocalThemePreference.current == AppThemeType.DARK
 
 /**
  * Main theme for the CubeSpeed app
@@ -54,21 +91,22 @@ val isAppInDarkTheme: Boolean
 fun CubeSpeedTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
-    themePreference: Boolean? = null,
+    dynamicColor: Boolean = false, // Set to false by default to use our defined colors
+    themeType: AppThemeType = AppThemeType.BLUE,
     content: @Composable () -> Unit
 ) {
-    // Use the provided theme preference, or the composition local value, or the system default
-    val isDarkTheme = themePreference ?: LocalThemePreference.current ?: darkTheme
+    // Use the provided theme type parameter instead of the composition local value
+    val appThemeType = themeType
 
     val colorScheme = when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current
-            if (isDarkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+            if (appThemeType == AppThemeType.DARK) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
 
-        isDarkTheme -> DarkColorScheme
-        else -> LightColorScheme
+        appThemeType == AppThemeType.DARK -> DarkColorScheme
+        appThemeType == AppThemeType.LIGHT -> LightColorScheme
+        else -> BlueColorScheme // Default to blue theme
     }
 
     MaterialTheme(

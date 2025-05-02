@@ -15,12 +15,13 @@ admin.initializeApp();
  */
 async function getStatsAggregated(userId, cubeType, tagId) {
   const db = admin.firestore();
-  // Get a reference to the collection
   const collectionRef = db.collection("users").doc(userId).collection("timers");
   const query = collectionRef.where("cube", "==", cubeType).where("tagId", "==", tagId);
 
-  // 1) COUNT - Using count() aggregation
   let totalSolves = 0;
+  let avgDuration = 0;
+  let best = null;
+
   try {
     const countSnapshot = await query.count().get();
     totalSolves = countSnapshot.data().count;
@@ -28,10 +29,10 @@ async function getStatsAggregated(userId, cubeType, tagId) {
     console.error(`Error calculating count: ${e}`);
   }
 
-  // 2) AVG - Using average() aggregation
-  let avgDuration = 0;
   try {
-    const averageAggregateQuery = query.aggregate({
+    // Only include non-DNF solves in average calculation
+    const validQuery = query.where("status", "!=", "DNF");
+    const averageAggregateQuery = validQuery.aggregate({
       averageDuration: AggregateField.average("duration")
     });
 
@@ -39,30 +40,12 @@ async function getStatsAggregated(userId, cubeType, tagId) {
     avgDuration = averageAggregateSnapshot.data().averageDuration || 0;
   } catch (e) {
     console.error(`Error calculating average: ${e}`);
-    // Fallback to manual calculation if aggregation fails
-    try {
-      const querySnapshot = await query.get();
-      if (!querySnapshot.empty) {
-        let sum = 0;
-        let count = 0;
-        querySnapshot.forEach(doc => {
-          const data = doc.data();
-          if (data.duration && typeof data.duration === 'number') {
-            sum += data.duration;
-            count++;
-          }
-        });
-        avgDuration = count > 0 ? sum / count : 0.0;
-      }
-    } catch (e) {
-      console.error(`Error calculating average manually: ${e}`);
-    }
   }
 
-  // 3) BEST - Get the best document (lowest duration)
-  let best = null;
   try {
-    const bestDocs = await query.orderBy("duration", "asc").limit(1).get();
+    // Only include non-DNF solves when determining best time
+    const validQuery = query.where("status", "!=", "DNF");
+    const bestDocs = await validQuery.orderBy("status", "asc") .orderBy("duration", "asc").limit(1).get();
     if (!bestDocs.empty) {
       best = bestDocs.docs[0].data();
     }
@@ -75,64 +58,142 @@ async function getStatsAggregated(userId, cubeType, tagId) {
 
 /**
  * Calculates the average of N times, excluding the best and worst times.
+ * Handles DNFs according to the specified rules:
+ * - Ao5, Ao12: Allow 1 DNF (if it's removed as worst time), otherwise return DNF
+ * - Ao50: Allow up to 2 DNFs (if they're removed), otherwise return DNF
+ * - Ao100: Allow up to 5 DNFs (if they're removed), otherwise return DNF
+ * 
  * @param {Array<number>} times - Array of times
+ * @param {Array<Object>} solves - Array of solve objects with status information
  * @param {number} n - Number of times to consider
- * @returns {number} - The average of N times
+ * @returns {number} - The average of N times, or -1 for DNF
  */
-function calculateAverageOfN(times, n) {
+function calculateAverageOfN(times, n, solves = []) {
   if (times.length < n) {
     return 0;
   }
 
-  // Get the most recent n times
+  // Get the n most recent times and solves
   const recentTimes = times.slice(0, n);
+  const recentSolves = solves.slice(0, n);
 
   if (n <= 2) {
-    // For n <= 2, just return the average
-    return recentTimes.reduce((a, b) => a + b, 0) / recentTimes.length;
+    return calculateSimpleAverage(recentTimes);
   }
 
-  // For n > 2, exclude best and worst
-  const sortedTimes = [...recentTimes].sort((a, b) => a - b);
-  const trimmedTimes = sortedTimes.slice(1, -1); // Remove best and worst
-  return trimmedTimes.reduce((a, b) => a + b, 0) / trimmedTimes.length;
+  // Count DNFs
+  const dnfCount = recentSolves.filter(solve => solve && solve.status === "DNF").length;
+
+  // Determine max allowed DNFs and number of times to trim based on n
+  let maxAllowedDNFs, trimCount;
+  if (n <= 12) {
+    // Ao5, Ao12: Remove 1 best and 1 worst, allow 1 DNF
+    maxAllowedDNFs = 1;
+    trimCount = 1;
+  } else if (n <= 50) {
+    // Ao50: Remove 5% (2 best and 2 worst), allow 2 DNFs
+    maxAllowedDNFs = 2;
+    trimCount = 2;
+  } else {
+    // Ao100: Remove 5% (5 best and 5 worst), allow 5 DNFs
+    maxAllowedDNFs = 5;
+    trimCount = 5;
+  }
+
+  // If there are too many DNFs, the average is DNF
+  if (dnfCount > maxAllowedDNFs) {
+    return -1; // Use -1 to represent DNF
+  }
+
+  // Create pairs of [time, isDNF] for sorting
+  const timePairs = recentTimes.map((time, i) => {
+    const isDNF = recentSolves[i] && recentSolves[i].status === "DNF";
+    return [time, isDNF];
+  });
+
+  // Sort pairs: DNFs are considered worst times
+  const sortedPairs = [...timePairs].sort((a, b) => {
+    // If one is DNF and the other is not, DNF is worse
+    if (a[1] && !b[1]) return 1;
+    if (!a[1] && b[1]) return -1;
+    // Otherwise, compare times
+    return a[0] - b[0];
+  });
+
+  // Remove trimCount best and trimCount worst times
+  const trimmedPairs = sortedPairs.slice(trimCount, sortedPairs.length - trimCount);
+
+  // If any remaining time is DNF, the average is DNF
+  if (trimmedPairs.some(pair => pair[1])) {
+    return -1; // DNF
+  }
+
+  // Extract times from pairs and calculate average
+  const trimmedTimes = trimmedPairs.map(pair => pair[0]);
+  return calculateSimpleAverage(trimmedTimes);
 }
 
 /**
- * Recalculates statistics for a user, cube type, and tag
+ * Calculates a simple average of an array of numbers
+ * @param {Array<number>} numbers - Array of numbers
+ * @returns {number} - The average
+ */
+function calculateSimpleAverage(numbers) {
+  if (!numbers.length) return 0;
+  return numbers.reduce((sum, value) => sum + value, 0) / numbers.length;
+}
+
+/**
+ * Calculates the standard deviation of an array of numbers
+ * @param {Array<number>} numbers - Array of numbers
+ * @returns {number} - The standard deviation
+ */
+function calculateStandardDeviation(numbers) {
+  if (numbers.length < 2) return 0; // Standard deviation requires at least 2 values
+
+  try {
+    const mean = calculateSimpleAverage(numbers);
+    const squareDiffs = numbers.map(value => {
+      const diff = value - mean;
+      return diff * diff;
+    });
+    const avgSquareDiff = calculateSimpleAverage(squareDiffs);
+    return Math.sqrt(avgSquareDiff);
+  } catch (e) {
+    console.error(`Error calculating standard deviation: ${e}`);
+    return 0;
+  }
+}
+
+/**
+ * Optimizes the recentSolves array to only include necessary fields
+ * @param {Array} solves - Array of solves
+ * @param {string} cubeType - The cube type
+ * @param {string} tagId - The tag ID
+ * @returns {Array} - Optimized array of solves
+ */
+function optimizeRecentSolves(solves, cubeType, tagId) {
+  return solves.map(solve => ({
+    id: solve.id,
+    duration: parseFloat(solve.duration) || 0,
+    status: solve.status,
+    timestamp: solve.timestamp,
+    cube: solve.cube || cubeType,  // Ensure cube type is set
+    tagId: solve.tagId || tagId    // Ensure tag ID is set
+  }));
+}
+
+/**
+ * Gets the count of valid solves (not DNF) for a user, cube type, and tag
+ * @param {object} db - Firestore database instance
  * @param {string} userId - The user ID
  * @param {string} cubeType - The cube type
  * @param {string} tagId - The tag ID
+ * @param {number} count - Total count of solves
+ * @param {object} currentStats - Current statistics
+ * @returns {number} - The count of valid solves
  */
-async function recalculateStats(userId, cubeType, tagId) {
-  console.log(`Recalculating stats for user ${userId}, cube ${cubeType}, tag ${tagId}`);
-
-  const db = admin.firestore();
-  const statsRef = db.collection("users").doc(userId).collection("stats");
-  const statsDocId = `${cubeType}_${tagId}`;
-
-  // Define the reference to the timers collection
-  const baseQ = db.collection("users")
-    .doc(userId)
-    .collection("timers")
-    .where("cube", "==", cubeType)
-    .where("tagId", "==", tagId);
-
-  // Use getStatsAggregated to get basic statistics
-  const aggregatedStats = await getStatsAggregated(userId, cubeType, tagId);
-
-  // Get current statistics for additional fields
-  const statsDoc = await statsRef.doc(statsDocId).get();
-  const currentStats = statsDoc.exists ? statsDoc.data() : {};
-
-  // Use values from aggregated statistics and ensure they are numbers
-  const count = parseInt(aggregatedStats.count) || 0;
-  const average = parseFloat(aggregatedStats.average) || 0;
-  const best = aggregatedStats.best;
-  let deviation = 0;
-
-  // Calculate valid_count by counting solves that are not DNF
-  let numValidSolves = 0;
+async function getValidSolvesCount(db, userId, cubeType, tagId, count, currentStats) {
   try {
     const validCountQuery = db.collection("users").doc(userId).collection("timers")
       .where("cube", "==", cubeType)
@@ -140,62 +201,153 @@ async function recalculateStats(userId, cubeType, tagId) {
       .where("status", "!=", "DNF");
 
     const validCountSnapshot = await validCountQuery.count().get();
-    numValidSolves = validCountSnapshot.data().count;
+    return validCountSnapshot.data().count;
   } catch (e) {
-    // If aggregation fails, use current value or estimate
-    console.error(`[recalculateStats] Error calculating valid_count: ${e}`);
-    numValidSolves = parseInt(currentStats.validCount) || 0;
-    if (!numValidSolves && count > 0) {
-      numValidSolves = count; // Estimation
+    console.error(`Error calculating valid_count: ${e}`);
+    const currentValidCount = parseInt(currentStats.validCount) || 0;
+    return currentValidCount || (count > 0 ? count : 0); // Use current value or estimate
+  }
+}
+
+/**
+ * Updates the recentSolves array based on the operation (add, update, delete)
+ * @param {object} db - Firestore database instance
+ * @param {string} userId - The user ID
+ * @param {string} cubeType - The cube type
+ * @param {string} tagId - The tag ID
+ * @param {Array} currentRecentSolves - Current recentSolves array
+ * @param {Object} newSolve - The new solve data
+ * @param {boolean} isDelete - Whether this is a delete operation
+ * @param {number} totalCount - Total count of solves
+ * @returns {Array} - Updated recentSolves array
+ */
+async function updateRecentSolves(db, userId, cubeType, tagId, currentRecentSolves, newSolve, isDelete, totalCount) {
+  let recentSolves = [...currentRecentSolves];
+
+  if (newSolve && !isDelete) {
+    // For add/update: Remove if exists, add to beginning, limit to 100
+    recentSolves = recentSolves.filter(solve => solve.id !== newSolve.id);
+    recentSolves.unshift(newSolve);
+
+    if (recentSolves.length > 100) {
+      recentSolves = recentSolves.slice(0, 100);
+    }
+  } else if (newSolve && isDelete) {
+    // For delete: Remove the solve from the array
+    recentSolves = recentSolves.filter(solve => solve.id !== newSolve.id);
+
+    // Fetch one more solve if needed to maintain up to 100 solves
+    if (recentSolves.length < 100 && recentSolves.length < totalCount) {
+      try {
+        const oldestTimestamp = recentSolves.length > 0 
+          ? recentSolves[recentSolves.length - 1].timestamp 
+          : new Date().toISOString();
+
+        const additionalSolveQuery = db.collection("users")
+          .doc(userId)
+          .collection("timers")
+          .where("cube", "==", cubeType)
+          .where("tagId", "==", tagId)
+          .orderBy("timestamp", "desc")
+          .startAfter(oldestTimestamp)
+          .limit(1);
+
+        const additionalSolveSnapshot = await additionalSolveQuery.get();
+        if (!additionalSolveSnapshot.empty) {
+          const additionalSolve = additionalSolveSnapshot.docs[0].data();
+          additionalSolve.id = additionalSolveSnapshot.docs[0].id;
+          recentSolves.push(additionalSolve);
+        }
+      } catch (e) {
+        console.error(`Error fetching additional solve: ${e}`);
+      }
     }
   }
 
-  // Calculate sum_time for incremental statistics
+  // Initialize recentSolves if empty but solves exist
+  if (recentSolves.length === 0 && totalCount > 0) {
+    try {
+      const solvesQuery = db.collection("users")
+        .doc(userId)
+        .collection("timers")
+        .where("cube", "==", cubeType)
+        .where("tagId", "==", tagId)
+        .orderBy("timestamp", "desc")
+        .limit(100);
+
+      const solvesSnapshot = await solvesQuery.get();
+      solvesSnapshot.forEach(doc => {
+        const solve = doc.data();
+        if (solve) {
+          solve.id = doc.id;
+          recentSolves.push(solve);
+        }
+      });
+    } catch (e) {
+      console.error(`Error initializing recentSolves: ${e}`);
+    }
+  }
+
+  // Ensure all solves have an ID
+  return recentSolves.map(solve => {
+    if (!solve.id && solve.timestamp) {
+      console.warn(`Solve missing ID, using timestamp as fallback`);
+      return { ...solve, id: solve.timestamp.toString() };
+    }
+    return solve;
+  });
+}
+
+/**
+ * Recalculates statistics for a user, cube type, and tag
+ * @param {string} userId - The user ID
+ * @param {string} cubeType - The cube type
+ * @param {string} tagId - The tag ID
+ * @param {Object} newSolve - The new solve data (if adding/updating)
+ * @param {boolean} isDelete - Whether this is a delete operation
+ */
+async function recalculateStats(userId, cubeType, tagId, newSolve = null, isDelete = false) {
+  console.log(`Recalculating stats for user ${userId}, cube ${cubeType}, tag ${tagId}`);
+
+  const db = admin.firestore();
+  const statsRef = db.collection("users").doc(userId).collection("stats");
+  const statsDocId = `${cubeType}_${tagId}`;
+
+  // Get basic statistics and current stats document
+  const aggregatedStats = await getStatsAggregated(userId, cubeType, tagId);
+  const statsDoc = await statsRef.doc(statsDocId).get();
+  const currentStats = statsDoc.exists ? statsDoc.data() : {};
+
+  // Parse and ensure values are numbers
+  const count = parseInt(aggregatedStats.count) || 0;
+  const average = parseFloat(aggregatedStats.average) || 0;
+  const best = aggregatedStats.best;
+  let deviation = 0;
+
+  // Get count of valid solves
+  const numValidSolves = await getValidSolvesCount(db, userId, cubeType, tagId, count, currentStats);
+
+  // Calculate sum of times for incremental statistics
   let sumTime = 0;
   if (average > 0 && numValidSolves > 0) {
     sumTime = average * numValidSolves;
   }
 
-  // For AoN (moving averages) only read the last 100 solves
-  let solves = [];
-  try {
-    const solvesQuery = baseQ
-      .orderBy("timestamp", "desc")
-      .limit(100);
+  // Get or initialize the recentSolves array
+  let recentSolves = currentStats.recentSolves || [];
 
-    const solvesSnapshot = await solvesQuery.get();
-    solvesSnapshot.forEach(doc => {
-      const solve = doc.data();
-      if (solve) {
-        solves.push(solve);
-      }
-    });
-  } catch (e) {
-    // Index still BUILDING, exit without interrupting everything
-    console.error(`[recalculateStats] Index still building: ${e}`);
-    return;
-  }
+  // Update recentSolves array based on operation
+  recentSolves = await updateRecentSolves(db, userId, cubeType, tagId, recentSolves, newSolve, isDelete, count);
 
-  const validSolves = solves.filter(s => s.status !== "DNF");
-  const times = validSolves.map(s => parseFloat(s.duration) || 0);
+  // Filter valid solves and extract times for calculations
+
+  const times = recentSolves.map(s => parseFloat(s.duration) || 0);
 
   // Calculate standard deviation
-  deviation = 0;
-  if (times.length >= 2) { // Standard deviation requires at least 2 values
-    try {
-      // Calculate standard deviation manually
-      const mean = times.reduce((a, b) => a + b, 0) / times.length;
-      const squareDiffs = times.map(value => {
-        const diff = value - mean;
-        return diff * diff;
-      });
-      const avgSquareDiff = squareDiffs.reduce((a, b) => a + b, 0) / squareDiffs.length;
-      deviation = Math.sqrt(avgSquareDiff);
-    } catch (e) {
-      console.error(`[recalculateStats] Error calculating standard deviation: ${e}`);
-      deviation = 0;
-    }
-  }
+  deviation = calculateStandardDeviation(times);
+
+  // Optimize recentSolves to only include necessary fields
+  const optimizedRecentSolves = optimizeRecentSolves(recentSolves, cubeType, tagId);
 
   // Create statistics object
   const stats = {
@@ -205,10 +357,11 @@ async function recalculateStats(userId, cubeType, tagId) {
     best: best ? best.duration : 0,
     average: average,
     deviation: deviation,
-    ao5: calculateAverageOfN(times, 5),
-    ao12: calculateAverageOfN(times, 12),
-    ao50: calculateAverageOfN(times, 50),
-    ao100: calculateAverageOfN(times, 100)
+    recentSolves: optimizedRecentSolves,
+    ao5: calculateAverageOfN(times, 5, recentSolves),
+    ao12: calculateAverageOfN(times, 12, recentSolves),
+    ao50: calculateAverageOfN(times, 50, recentSolves),
+    ao100: calculateAverageOfN(times, 100, recentSolves)
   };
 
   // Save statistics
@@ -220,19 +373,19 @@ exports.updateStatsOnSolve = onDocumentWritten(
   { 
     document: 'users/{userId}/timers/{timerId}',
     region: "us-central1",
-    memory: "1GiB",     // Less memory than getStats as it's a background operation
-    cpu: 2,               // Single CPU is sufficient for this operation
-    maxInstances: 10      // Limit concurrent executions
+    memory: "1GiB",
+    cpu: 2,
+    maxInstances: 10
   },
   async (event) => {
     const userId = event.params.userId;
+    const timerId = event.params.timerId;
 
-    // Handle document deletion - this is now handled by updateStatsOnDelete
+    // Skip if document was deleted (handled by updateStatsOnDelete)
     if (!event.data.after) {
       return null;
     }
 
-    // Handle document creation or update
     const solveData = event.data.after.data();
     if (!solveData) {
       return null;
@@ -244,8 +397,10 @@ exports.updateStatsOnSolve = onDocumentWritten(
       return null;
     }
 
-    // For creation or update, recalculate stats
-    await recalculateStats(userId, cubeType, tagId);
+    // Add the document ID to the solve data
+    const solveWithId = { ...solveData, id: timerId };
+
+    await recalculateStats(userId, cubeType, tagId, solveWithId, false);
     return null;
   });
 
@@ -254,12 +409,13 @@ exports.updateStatsOnDelete = onDocumentDeleted(
   { 
     document: 'users/{userId}/timers/{timerId}',
     region: "us-central1",
-    memory: "1GiB",     // Same configuration as updateStatsOnSolve
-    cpu: 2,               // Single CPU is sufficient for this operation
-    maxInstances: 10      // Limit concurrent executions
+    memory: "1GiB",
+    cpu: 2,
+    maxInstances: 10
   },
   async (event) => {
     const userId = event.params.userId;
+    const timerId = event.params.timerId;
 
     // Get data from the snapshot (which contains the document before deletion)
     const solveData = event.data.data();
@@ -273,9 +429,11 @@ exports.updateStatsOnDelete = onDocumentDeleted(
       return null;
     }
 
+    // Add the document ID to the solve data
+    const solveWithId = { ...solveData, id: timerId };
+
     console.log(`Document deleted. Recalculating stats for user ${userId}, cube ${cubeType}, tag ${tagId}`);
-    // Recalculate stats after deletion
-    await recalculateStats(userId, cubeType, tagId);
+    await recalculateStats(userId, cubeType, tagId, solveWithId, true);
     return null;
   });
 
@@ -283,44 +441,41 @@ exports.updateStatsOnDelete = onDocumentDeleted(
 exports.getStats = onRequest(
   {
     region: "us-central1",
-    memory: "1GiB",       // Optional: allowed values "256MiB", "512MiB", "1GiB", etc.
-    cpu: 1,               // Optional: values 1, 2, 4, depending on how much RAM you use
-   // minInstances: 1,      // Optional: always active instance to avoid cold start
-    maxInstances: 10      // Optional: to limit autoscaling
+    memory: "1GiB",
+    cpu: 1,
+    maxInstances: 10
   },
   async (req, res) => {
-  // Get query parameters
-  const userId = req.query.userId;
-  const cubeType = req.query.cubeType;
-  const tagId = req.query.tagId;
+    const userId = req.query.userId;
+    const cubeType = req.query.cubeType;
+    const tagId = req.query.tagId;
 
-  if (!userId || !cubeType || !tagId) {
-    return res.status(400).json({
-      error: "Missing required parameters"
-    });
+    if (!userId || !cubeType || !tagId) {
+      return res.status(400).json({
+        error: "Missing required parameters"
+      });
+    }
+
+    const db = admin.firestore();
+    const statsRef = db.collection("users").doc(userId).collection("stats");
+    const statsDocId = `${cubeType}_${tagId}`;
+    const statsDoc = await statsRef.doc(statsDocId).get();
+
+    if (!statsDoc.exists) {
+      // Return empty statistics if not found
+      return res.json({
+        count: 0,
+        validCount: 0,
+        best: 0,
+        average: 0,
+        deviation: 0,
+        ao5: 0,
+        ao12: 0,
+        ao50: 0,
+        ao100: 0
+      });
+    }
+
+    return res.json(statsDoc.data());
   }
-
-  // Get statistics from Firestore
-  const db = admin.firestore();
-  const statsRef = db.collection("users").doc(userId).collection("stats");
-  const statsDocId = `${cubeType}_${tagId}`;
-  const statsDoc = await statsRef.doc(statsDocId).get();
-
-  if (!statsDoc.exists) {
-    // Return empty statistics if not found
-    return res.json({
-      count: 0,
-      validCount: 0,
-      best: 0,
-      average: 0,
-      deviation: 0,
-      ao5: 0,
-      ao12: 0,
-      ao50: 0,
-      ao100: 0
-    });
-  }
-
-  // Return statistics
-  return res.json(statsDoc.data());
-});
+);

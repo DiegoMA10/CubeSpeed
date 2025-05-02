@@ -36,19 +36,39 @@ The functions have been migrated to use Firebase Functions 2nd Generation:
 
 ## Helper Functions
 
-- `getStatsAggregated`: Gets aggregated statistics for a user, cube type, and tag
-- `recalculateStats`: Recalculates statistics for a user, cube type, and tag
 - `calculateAverageOfN`: Calculates the average of N times, excluding the best and worst times
+
+## Performance Optimization
+
+The functions have been optimized to significantly reduce Firestore reads:
+
+1. **Incremental Statistics Calculation**: Instead of reading all solves each time, statistics are updated incrementally.
+
+2. **recentSolves Array**: The stats document stores an optimized array of the last 100 solves, which allows:
+   - Calculating Ao5, Ao12, Ao50, and Ao100 without additional Firestore reads
+   - Maintaining a sliding window of recent solves
+   - Reducing reads from ~100 per solve to just 1
+
+3. **Efficient Updates**: Both `updateStatsOnSolve` and `updateStatsOnDelete` efficiently maintain the recentSolves array:
+   - For new solves: Add to the beginning of the array and remove oldest if over 100
+   - For updates: Replace the existing solve in the array
+   - For deletions: Remove the solve from the array
+   - All operations only require reading and writing the stats document once
+
+4. **Storage Optimization**: The recentSolves array only stores essential fields for each solve:
+   - ID, duration, status, timestamp, cube type, and tag ID
+   - This minimizes the document size while maintaining all necessary information
+
+5. **Response Size Optimization**: The `getStats` function returns only the calculated statistics to reduce data transfer.
 
 ## Key Implementation Notes
 
 - Standard deviation is calculated manually in JavaScript
-- Firestore's count() method is used for counting documents
-- Average calculation uses AggregateField.average with a fallback to manual calculation if aggregation fails
+- All statistics (count, sum, best, average, Ao5, etc.) are calculated incrementally
 - All functions use the Firebase Functions 2nd Gen API
 - Memory and CPU configurations have been optimized for each function:
-  - `getStats`: 1GiB memory, 2 CPUs, 1 minimum instance for fast response
-  - `updateStatsOnSolve` and `updateStatsOnDelete`: 512MiB memory, 1 CPU for efficient background processing
+  - `getStats`: 1GiB memory, 2 CPUs for fast response
+  - `updateStatsOnSolve` and `updateStatsOnDelete`: 1GiB memory, 2 CPUs for efficient background processing
   - See [RESOURCE_CONFIG.md](./RESOURCE_CONFIG.md) for detailed configuration information
 
 ## Deployment Instructions

@@ -35,15 +35,15 @@ fun RegisterScreen(
     var confirmPassword by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
-    
+
     // Validation states
     val isEmailValid by derivedStateOf { email.contains("@") && email.contains(".") }
     val isPasswordValid by derivedStateOf { password.length >= 6 }
     val doPasswordsMatch by derivedStateOf { password == confirmPassword }
-    
+
     val focusManager = LocalFocusManager.current
     val auth = remember { Firebase.auth }
-    
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -55,15 +55,15 @@ fun RegisterScreen(
         Text(
             text = "Create Account",
             style = MaterialTheme.typography.headlineLarge,
-            color = MaterialTheme.colorScheme.primary,
+            color = MaterialTheme.colorScheme.onPrimary,
             modifier = Modifier.padding(bottom = 32.dp)
         )
-        
+
         // Name field
         OutlinedTextField(
             value = name,
             onValueChange = { name = it },
-            label = { Text("Name") },
+            label = { Text("Name", color = MaterialTheme.colorScheme.onPrimary) },
             singleLine = true,
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Text,
@@ -76,12 +76,12 @@ fun RegisterScreen(
                 .fillMaxWidth()
                 .padding(bottom = 16.dp)
         )
-        
+
         // Email field
         OutlinedTextField(
             value = email,
             onValueChange = { email = it },
-            label = { Text("Email") },
+            label = { Text("Email", color = MaterialTheme.colorScheme.onPrimary) },
             singleLine = true,
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Email,
@@ -93,19 +93,19 @@ fun RegisterScreen(
             isError = email.isNotEmpty() && !isEmailValid,
             supportingText = {
                 if (email.isNotEmpty() && !isEmailValid) {
-                    Text("Please enter a valid email address")
+                    Text("Please enter a valid email address", color = MaterialTheme.colorScheme.onPrimary)
                 }
             },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 16.dp)
         )
-        
+
         // Password field
         OutlinedTextField(
             value = password,
             onValueChange = { password = it },
-            label = { Text("Password") },
+            label = { Text("Password", color = MaterialTheme.colorScheme.onPrimary) },
             singleLine = true,
             visualTransformation = PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(
@@ -125,7 +125,7 @@ fun RegisterScreen(
                 .fillMaxWidth()
                 .padding(bottom = 16.dp)
         )
-        
+
         // Confirm Password field
         OutlinedTextField(
             value = confirmPassword,
@@ -158,7 +158,7 @@ fun RegisterScreen(
                 .fillMaxWidth()
                 .padding(bottom = 24.dp)
         )
-        
+
         // Error message
         if (errorMessage != null) {
             Text(
@@ -168,7 +168,7 @@ fun RegisterScreen(
                 modifier = Modifier.padding(bottom = 16.dp)
             )
         }
-        
+
         // Register button
         Button(
             onClick = {
@@ -194,7 +194,7 @@ fun RegisterScreen(
                 Text("Create Account")
             }
         }
-        
+
         // Login link
         TextButton(
             onClick = onNavigateToLogin,

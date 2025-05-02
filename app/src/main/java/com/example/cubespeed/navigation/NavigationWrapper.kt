@@ -2,7 +2,12 @@ package com.example.cubespeed.navigation
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Settings
@@ -11,13 +16,20 @@ import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.systemBars
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
@@ -27,10 +39,11 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.cubespeed.ui.screens.login.LoginScreen
 import com.example.cubespeed.ui.screens.register.RegisterScreen
-
 import com.example.cubespeed.ui.screens.timer.TimerScreen
-
+import com.example.cubespeed.ui.screens.history.HistoryScreen
+import com.example.cubespeed.ui.screens.statistics.StatisticsScreen
 import com.example.cubespeed.ui.screens.settings.SettingsScreen
+import com.example.cubespeed.ui.theme.AppThemeType
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
 
@@ -90,92 +103,59 @@ val bottomNavItems = listOf(
 @Composable
 fun NavigationWrapper(
     modifier: Modifier = Modifier,
-    navController: NavHostController = rememberNavController(),
+    navController: NavHostController,
     startDestination: String = Route.Login.route,
-    onThemeChanged: (Boolean) -> Unit = {}
+    onThemeChanged: (AppThemeType) -> Unit = {}
 ) {
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentDestination = navBackStackEntry?.destination
-
-    // Check if we're in an authenticated route that should show the bottom navigation
-    val showBottomNav = currentDestination?.hierarchy?.any { destination ->
-        bottomNavItems.any { it.route == destination.route }
-    } ?: false
-
-    Scaffold(
-        bottomBar = {
-            if (showBottomNav) {
-                NavigationBar {
-                    bottomNavItems.forEach { item ->
-                        val selected = currentDestination?.hierarchy?.any { it.route == item.route } == true
-                        NavigationBarItem(
-                            icon = { Icon(item.icon, contentDescription = item.title) },
-                            label = { Text(item.title) },
-                            selected = selected,
-                            onClick = {
-                                navController.navigate(item.route) {
-                                    // Pop up to the start destination of the graph to
-                                    // avoid building up a large stack of destinations
-                                    popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
-                                    }
-                                    // Avoid multiple copies of the same destination when
-                                    // reselecting the same item
-                                    launchSingleTop = true
-                                    // Restore state when reselecting a previously selected item
-                                    restoreState = true
-                                }
-                            }
-                        )
-                    }
-                }
-            }
+    NavHost(
+        modifier = modifier,
+        navController = navController,
+        startDestination = startDestination
+    ) {
+        composable(Route.Login.route) {
+            LoginScreen(
+                onNavigateToRegister = { navController.navigate(Route.Register.route) },
+                onLoginSuccess = { navController.navigate(Route.Timer.route) {
+                    // Clear back stack when user logs in
+                    popUpTo(Route.Login.route) { inclusive = true }
+                }}
+            )
         }
-    ) { innerPadding ->
-        NavHost(
-            modifier = modifier.padding(innerPadding),
-            navController = navController,
-            startDestination = startDestination
-        ) {
-            composable(Route.Login.route) {
-                LoginScreen(
-                    onNavigateToRegister = { navController.navigate(Route.Register.route) },
-                    onLoginSuccess = { navController.navigate(Route.Timer.route) {
-                        // Clear back stack when user logs in
-                        popUpTo(Route.Login.route) { inclusive = true }
-                    }}
-                )
-            }
 
-            composable(Route.Register.route) {
-                RegisterScreen(
-                    onNavigateToLogin = { navController.navigate(Route.Login.route) },
-                    onRegisterSuccess = { navController.navigate(Route.Timer.route) {
-                        // Clear back stack when user registers
-                        popUpTo(Route.Login.route) { inclusive = true }
-                    }}
-                )
-            }
+        composable(Route.Register.route) {
+            RegisterScreen(
+                onNavigateToLogin = { navController.navigate(Route.Login.route) },
+                onRegisterSuccess = { navController.navigate(Route.Timer.route) {
+                    // Clear back stack when user registers
+                    popUpTo(Route.Login.route) { inclusive = true }
+                }}
+            )
+        }
 
-            composable(Route.Home.route) {
+        composable(Route.Home.route) {
+            // Empty home route
+        }
 
-            }
+        composable(Route.Timer.route) {
+            TimerScreen()
+        }
 
-            composable(Route.Timer.route) {
-                TimerScreen()
-            }
+        composable(Route.History.route) {
+            HistoryScreen()
+        }
 
+        composable(Route.Statistics.route) {
+            StatisticsScreen()
+        }
 
-
-            composable(Route.Settings.route) {
-                SettingsScreen(
-                    onLogout = { navController.navigate(Route.Login.route) {
-                        // Clear back stack when user logs out
-                        popUpTo(navController.graph.findStartDestination().id) { inclusive = true }
-                    }},
-                    onThemeChanged = onThemeChanged
-                )
-            }
+        composable(Route.Settings.route) {
+            SettingsScreen(
+                onLogout = { navController.navigate(Route.Login.route) {
+                    // Clear back stack when user logs out
+                    popUpTo(navController.graph.findStartDestination().id) { inclusive = true }
+                }},
+                onThemeChanged = onThemeChanged
+            )
         }
     }
 }

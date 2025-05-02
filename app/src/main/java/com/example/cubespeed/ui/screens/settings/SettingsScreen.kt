@@ -1,7 +1,10 @@
 package com.example.cubespeed.ui.screens.settings
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ColorLens
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Notifications
@@ -10,7 +13,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import com.example.cubespeed.ui.theme.AppThemeType
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.launch
@@ -22,14 +27,14 @@ import kotlinx.coroutines.launch
 @Composable
 fun SettingsScreen(
     onLogout: () -> Unit,
-    onThemeChanged: (Boolean) -> Unit = {}
+    onThemeChanged: (AppThemeType) -> Unit = {}
 ) {
     val auth = remember { Firebase.auth }
     val currentUser = remember { auth.currentUser }
     val context = LocalContext.current
 
     // State for settings
-    var isDarkTheme by remember { mutableStateOf(false) }
+    var selectedTheme by remember { mutableStateOf(AppThemeType.BLUE) }
     var notificationsEnabled by remember { mutableStateOf(true) }
 
     // Snackbar host state
@@ -39,7 +44,8 @@ fun SettingsScreen(
     // Load settings from preferences
     LaunchedEffect(Unit) {
         val sharedPrefs = context.getSharedPreferences("cubespeed_settings", 0)
-        isDarkTheme = sharedPrefs.getBoolean("dark_theme", false)
+        val themeOrdinal = sharedPrefs.getInt("theme_type", AppThemeType.BLUE.ordinal)
+        selectedTheme = AppThemeType.values()[themeOrdinal]
         notificationsEnabled = sharedPrefs.getBoolean("notifications_enabled", true)
     }
 
@@ -47,7 +53,7 @@ fun SettingsScreen(
     fun saveSettings() {
         val sharedPrefs = context.getSharedPreferences("cubespeed_settings", 0)
         with(sharedPrefs.edit()) {
-            putBoolean("dark_theme", isDarkTheme)
+            putInt("theme_type", selectedTheme.ordinal)
             putBoolean("notifications_enabled", notificationsEnabled)
             apply()
         }
@@ -60,7 +66,7 @@ fun SettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Settings") },
+                title = { Text("Settings", color = MaterialTheme.colorScheme.onPrimary) },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
@@ -89,6 +95,7 @@ fun SettingsScreen(
                     Text(
                         text = "User Information",
                         style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onPrimary,
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
 
@@ -116,34 +123,111 @@ fun SettingsScreen(
                     )
 
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(bottom = 8.dp)
                     ) {
+                        Icon(
+                            imageVector = Icons.Default.ColorLens,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(end = 16.dp)
+                        )
+
+                        Text(
+                            text = "Theme",
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
+
+                    // Radio button group for theme selection
+                    Column(
+                        modifier = Modifier
+                            .selectableGroup()
+                            .padding(start = 40.dp)
+                    ) {
+                        // Blue theme option
                         Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp)
+                                .selectable(
+                                    selected = selectedTheme == AppThemeType.BLUE,
+                                    onClick = { 
+                                        selectedTheme = AppThemeType.BLUE
+                                        saveSettings()
+                                        onThemeChanged(AppThemeType.BLUE)
+                                    },
+                                    role = Role.RadioButton
+                                )
+                                .padding(horizontal = 16.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.DarkMode,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(end = 16.dp)
+                            RadioButton(
+                                selected = selectedTheme == AppThemeType.BLUE,
+                                onClick = null // null because we're handling the click on the row
                             )
-
                             Text(
-                                text = "Dark Theme",
-                                style = MaterialTheme.typography.bodyLarge
+                                text = "Blue",
+                                style = MaterialTheme.typography.bodyLarge,
+                                modifier = Modifier.padding(start = 16.dp)
                             )
                         }
 
-                        Switch(
-                            checked = isDarkTheme,
-                            onCheckedChange = { 
-                                isDarkTheme = it
-                                saveSettings()
-                                onThemeChanged(it)
-                            }
-                        )
+                        // Red theme option
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp)
+                                .selectable(
+                                    selected = selectedTheme == AppThemeType.LIGHT,
+                                                    onClick = { 
+                                                        selectedTheme = AppThemeType.LIGHT
+                                                        saveSettings()
+                                                        onThemeChanged(AppThemeType.LIGHT)
+                                                    },
+                                    role = Role.RadioButton
+                                )
+                                .padding(horizontal = 16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = selectedTheme == AppThemeType.LIGHT,
+                                onClick = null // null because we're handling the click on the row
+                            )
+                            Text(
+                                text = "Light",
+                                style = MaterialTheme.typography.bodyLarge,
+                                modifier = Modifier.padding(start = 16.dp)
+                            )
+                        }
+
+                        // Dark theme option
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp)
+                                .selectable(
+                                    selected = selectedTheme == AppThemeType.DARK,
+                                    onClick = { 
+                                        selectedTheme = AppThemeType.DARK
+                                        saveSettings()
+                                        onThemeChanged(AppThemeType.DARK)
+                                    },
+                                    role = Role.RadioButton
+                                )
+                                .padding(horizontal = 16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = selectedTheme == AppThemeType.DARK,
+                                onClick = null // null because we're handling the click on the row
+                            )
+                            Text(
+                                text = "Dark",
+                                style = MaterialTheme.typography.bodyLarge,
+                                modifier = Modifier.padding(start = 16.dp)
+                            )
+                        }
                     }
                 }
             }

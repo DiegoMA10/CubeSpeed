@@ -13,6 +13,7 @@ import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.functions.ktx.functions
 import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.tasks.await
+import android.util.Log
 
 /**
  * Data class to hold statistics for a specific cube type and tag
@@ -80,7 +81,7 @@ class FirebaseRepository {
             // Return the ID of the saved solve
             return solveRef.id
         } catch (e: Exception) {
-            // Handle error
+            Log.e("FirebaseRepository", "Error saving solve: ${e.message}", e)
             return ""
         }
     }
@@ -88,16 +89,17 @@ class FirebaseRepository {
     /**
      * Updates the statistics for a specific cube and tag
      * 
-     * Note: Statistics are calculated by a Firebase Function written in Python.
-     * The function is triggered automatically when a solve is added, updated, or deleted.
-     * See the 'functions/main.py' file for the implementation.
+     * Note: Statistics are calculated by Firebase Functions written in Node.js.
+     * The functions are triggered automatically when a solve is added, updated, or deleted.
+     * See the 'functions/index.js' file for the implementation.
      * 
      * The app observes the stats document in Firestore for real-time updates
-     * using a snapshot listener in the UI components.
+     * using snapshot listeners in the UI components.
+     * 
+     * This method is a no-op as the statistics are calculated automatically.
      */
     private suspend fun updateStats(userId: String, cubeType: CubeType, tagId: String) {
         // No action needed here as the function is triggered automatically
-        // and the UI components observe the stats document for updates
     }
 
     /**
@@ -138,7 +140,7 @@ class FirebaseRepository {
             // If no statistics found, return empty statistics
             return SolveStatistics()
         } catch (e: Exception) {
-            // Handle error
+            Log.e("FirebaseRepository", "Error getting stats for ${cubeType.name}_$tagId: ${e.message}", e)
             return SolveStatistics()
         }
     }
@@ -164,6 +166,7 @@ class FirebaseRepository {
             // Combine default tags with user tags, ensuring no duplicates
             return (defaultTags + userTags).distinct()
         } catch (e: Exception) {
+            Log.e("FirebaseRepository", "Error getting tags: ${e.message}", e)
             // If there's an error, return just the default tags
             return defaultTags
         }
@@ -196,6 +199,7 @@ class FirebaseRepository {
 
             return true
         } catch (e: Exception) {
+            Log.e("FirebaseRepository", "Error adding tag '$tagName': ${e.message}", e)
             return false
         }
     }
@@ -218,6 +222,7 @@ class FirebaseRepository {
             val solveDoc = solveRef.get().await()
 
             if (!solveDoc.exists()) {
+                Log.w("FirebaseRepository", "Solve $solveId not found for deletion")
                 return false
             }
 
@@ -231,9 +236,27 @@ class FirebaseRepository {
             // Update stats
             updateStats(currentUser.uid, cubeType, tagId)
 
+            // Check if this was the last solve for this cube type and tag
+            val remainingSolves = countSolvesByCubeTypeAndTag(cubeType, tagId)
+            if (remainingSolves == 0) {
+                // If no solves remain, delete the stats document
+                val statsDocId = "${cubeType.name}_${tagId}"
+                val statsRef = firestore.collection("users")
+                    .document(currentUser.uid)
+                    .collection("stats")
+                    .document(statsDocId)
+
+                // Check if the stats document exists before deleting
+                val statsDoc = statsRef.get().await()
+                if (statsDoc.exists()) {
+                    Log.d("FirebaseRepository", "Deleting stats document: $statsDocId")
+                    statsRef.delete().await()
+                }
+            }
+
             return true
         } catch (e: Exception) {
-            // Handle error
+            Log.e("FirebaseRepository", "Error deleting solve $solveId: ${e.message}", e)
             return false
         }
     }
@@ -245,21 +268,22 @@ class FirebaseRepository {
      * @return The number of solves for the specified cube type and tag
      */
     suspend fun countSolvesByCubeTypeAndTag(cubeType: CubeType, tagId: String): Int {
-    val currentUser = auth.currentUser ?: return 0
+        val currentUser = auth.currentUser ?: return 0
 
-    return try {
-        val query = firestore.collection("users")
-            .document(currentUser.uid)
-            .collection("timers")
-            .whereEqualTo("cube", cubeType.name)
-            .whereEqualTo("tagId", tagId)
+        return try {
+            val query = firestore.collection("users")
+                .document(currentUser.uid)
+                .collection("timers")
+                .whereEqualTo("cube", cubeType.name)
+                .whereEqualTo("tagId", tagId)
 
-        val countResult = query.count().get(AggregateSource.SERVER).await()
-        countResult.count.toInt()
-    } catch (e: Exception) {
-        0
+            val countResult = query.count().get(AggregateSource.SERVER).await()
+            countResult.count.toInt()
+        } catch (e: Exception) {
+            Log.e("FirebaseRepository", "Error counting solves for ${cubeType.name}_$tagId: ${e.message}", e)
+            0
+        }
     }
-}
 
     /**
      * Removes a tag for the current user and all timers and stats associated with it
@@ -268,7 +292,10 @@ class FirebaseRepository {
      */
     suspend fun removeTag(tagName: String): Boolean {
         // Don't remove default tags
-        if (defaultTags.contains(tagName)) return false
+        if (defaultTags.contains(tagName)) {
+            Log.w("FirebaseRepository", "Cannot remove default tag: $tagName")
+            return false
+        }
 
         val currentUser = auth.currentUser ?: return false
 
@@ -290,10 +317,15 @@ class FirebaseRepository {
                     .whereEqualTo("tagId", tagName)
 
                 val timersSnapshot = timersRef.get().await()
+                Log.d("FirebaseRepository", "Deleting ${timersSnapshot.size()} solves with tag: $tagName")
 
-                // Delete all timers with this tag
-                timersSnapshot.documents.forEach { timerDoc ->
-                    timerDoc.reference.delete().await()
+                // Delete timers in batches of 500 (Firestore batch limit)
+                timersSnapshot.documents.chunked(500).forEach { batch ->
+                    val writeBatch = firestore.batch()
+                    batch.forEach { timerDoc ->
+                        writeBatch.delete(timerDoc.reference)
+                    }
+                    writeBatch.commit().await()
                 }
 
                 // Find and delete all stats documents for this tag
@@ -308,21 +340,31 @@ class FirebaseRepository {
                 val statsToDelete = statsSnapshot.documents.filter { doc ->
                     doc.id.endsWith("_$tagName")
                 }
+                Log.d("FirebaseRepository", "Deleting ${statsToDelete.size} stats documents for tag: $tagName")
 
-                // Delete all stats documents for this tag
-                statsToDelete.forEach { statsDoc ->
-                    statsDoc.reference.delete().await()
+                // Delete stats documents in batches of 500
+                statsToDelete.chunked(500).forEach { batch ->
+                    val writeBatch = firestore.batch()
+                    batch.forEach { statsDoc ->
+                        writeBatch.delete(statsDoc.reference)
+                    }
+                    writeBatch.commit().await()
                 }
 
                 // Then delete the tag itself
+                val tagBatch = firestore.batch()
                 querySnapshot.documents.forEach { doc ->
-                    doc.reference.delete().await()
+                    tagBatch.delete(doc.reference)
                 }
+                tagBatch.commit().await()
+
                 return true
             }
 
+            Log.w("FirebaseRepository", "Tag not found for removal: $tagName")
             return false
         } catch (e: Exception) {
+            Log.e("FirebaseRepository", "Error removing tag $tagName: ${e.message}", e)
             return false
         }
     }

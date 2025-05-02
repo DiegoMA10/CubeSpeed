@@ -14,9 +14,12 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -55,8 +58,11 @@ import androidx.compose.material.icons.materialIcon
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -127,6 +133,9 @@ fun TimerScreen() {
     // State to track if timer is running
     var isTimerRunning by remember { mutableStateOf(false) }
 
+    // State for statistics refresh trigger
+    var statsRefreshTrigger by remember { mutableLongStateOf(0L) }
+
     // List of available cube types
     val cubeTypes = CubeType.getAllDisplayNames()
 
@@ -167,6 +176,9 @@ fun TimerScreen() {
                             firebaseRepository.saveSolve(solve)
                             // No need to update previousSolve as it already has the correct ID
                         }
+
+                        // Increment stats refresh trigger to update statistics
+                        statsRefreshTrigger += 1
                     }
                 },
                 onSolveUpdated = { updatedSolve ->
@@ -183,17 +195,17 @@ fun TimerScreen() {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF3F51B5))
+            .background(MaterialTheme.colorScheme.primary)
     ) {
+        // Scaffold te aplica automáticamente padding en content por la bottomBar
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 20.dp, bottom = 16.dp),
+                .padding(top = 20.dp), // Removed bottom padding as it's handled by Scaffold's innerPadding
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             // Only show CubeTopBar when timer is not running
-
             FixedSizeAnimatedVisibility(
                 visible = !isTimerRunning,
                 enter = fadeIn(animationSpec = tween(durationMillis = 400)),
@@ -209,6 +221,22 @@ fun TimerScreen() {
 
             // Use the remembered Timer composable
             timer()
+
+            // Statistics card at the bottom
+            if (!isTimerRunning) {
+                StatisticsCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(
+                            start = 16.dp,
+                            end = 16.dp,
+                            bottom = 16.dp
+                        ),
+                    selectedCubeType = selectedCubeType,
+                    selectedTag = selectedTag,
+                    refreshTrigger = statsRefreshTrigger
+                )
+            }
         }
     }
 
@@ -254,11 +282,17 @@ fun Timer(
     var showControls by remember { mutableStateOf(false) }
     val showWithDelay = remember { mutableStateOf(false) }
 
+    // Cooldown state to prevent spam clicking
+    var isInCooldown by remember { mutableStateOf(false) }
+
+    // State for comment dialog
+    var showCommentDialog by remember { mutableStateOf(false) }
+    var commentText by remember { mutableStateOf("") }
+
     // Coroutine scope for async operations
     val timerCoroutineScope = rememberCoroutineScope()
 
-    // Base timer size, will be adjusted based on text length
-    var timerSize by remember { mutableStateOf(120.sp) }
+    // Function to calculate font size based on text length will be used instead of a state variable
 
     // Function to calculate font size based on text length
     fun calculateFontSize(text: String): TextUnit {
@@ -296,6 +330,47 @@ fun Timer(
     // State to track if we have a completed solve that needs to be saved
     var completedSolve by remember { mutableStateOf<Solve?>(null) }
 
+    // Function to reset timer state to initial values
+    fun resetTimerState(
+        resetCompletedSolve: Boolean = false,
+        generateNewScramble: Boolean = false
+    ) {
+        elapsedTime = 0L
+        showControls = false
+        isDNF = false
+        hasAddedTwoSeconds = false
+        originalTime = 0L
+
+        if (resetCompletedSolve && completedSolve != null) {
+            completedSolve = null
+        }
+
+        if (generateNewScramble) {
+            scramble = generateScramble()
+        }
+    }
+
+    // Function to set cooldown state and clear it after a delay
+    fun setCooldown(durationMillis: Long = 1000) {
+        isInCooldown = true
+
+        // Launch a coroutine to clear the cooldown after a delay
+        timerCoroutineScope.launch {
+            delay(durationMillis)
+            isInCooldown = false
+        }
+    }
+
+    // Function to start the timer
+    fun startTimer(resetExternalTrigger: Boolean = false) {
+        isRunning = true
+        onTimerRunningChange(true)
+
+        if (resetExternalTrigger) {
+            onExternalTriggerHandled()
+        }
+    }
+
 
     LaunchedEffect(isRunning) {
         if (!isRunning) {
@@ -311,32 +386,31 @@ fun Timer(
     // Handle external trigger
     LaunchedEffect(externalTrigger) {
         if (externalTrigger) {
+            // Ignore external trigger if in cooldown
+            if (isInCooldown) {
+                onExternalTriggerHandled()
+                return@LaunchedEffect
+            }
+
             if (isRunning) {
                 isRunning = false
                 showControls = true
                 // Notify parent about timer state change
                 onTimerRunningChange(false)
+
+                // Set cooldown to prevent immediate restart
+                setCooldown(1000) // 200ms cooldown for external trigger
             } else {
                 if (elapsedTime > 0) {
                     // Reset if already stopped
-                    elapsedTime = 0
-                    showControls = false
-                    isDNF = false
-                    hasAddedTwoSeconds = false
+                    resetTimerState()
                 } else {
                     // We should NOT save the solve when starting the timer
-                    // Just reset completedSolve if it exists
-                    if (completedSolve != null) {
-                        completedSolve = null
-                    }
+                    // Reset timer state and completedSolve
+                    resetTimerState(resetCompletedSolve = true)
 
                     // Start timer
-                    isRunning = true
-                    showControls = false
-                    isDNF = false
-                    hasAddedTwoSeconds = false
-                    // Notify parent about timer state change
-                    onTimerRunningChange(true)
+                    startTimer()
                 }
             }
             onExternalTriggerHandled()
@@ -347,6 +421,8 @@ fun Timer(
 
 
     // Timer effect
+    val timerPrimaryColor = MaterialTheme.colorScheme.onPrimary
+
     LaunchedEffect(isRunning) {
         // Notify parent about timer state change
         onTimerRunningChange(isRunning)
@@ -354,7 +430,7 @@ fun Timer(
         if (isRunning) {
             startTime = System.currentTimeMillis() - elapsedTime
             // Reset color to white when running
-            timerColor = Color.White
+            timerColor = timerPrimaryColor
             while (isRunning) {
                 elapsedTime = System.currentTimeMillis() - startTime
                 delay(10) // Update every 10ms for smooth display
@@ -364,27 +440,17 @@ fun Timer(
         }
     }
 
-    // Effect for timer color
-    LaunchedEffect(isRunning) {
-        timerColor = Color.White
+     LaunchedEffect(isRunning) {
+        timerColor = timerPrimaryColor
     }
+
+
 
     // Effect to reset timer when cube type changes
     LaunchedEffect(selectedCubeType) {
         if (!isRunning) {
             // Reset timer state when cube type changes
-            elapsedTime = 0
-            showControls = false
-            isDNF = false
-            hasAddedTwoSeconds = false
-            originalTime = 0
-            // Generate new scramble for the new cube type
-            scramble = generateScramble()
-            // We should NOT save the solve when changing cube type
-            // Just reset completedSolve if it exists
-            if (completedSolve != null) {
-                completedSolve = null
-            }
+            resetTimerState(resetCompletedSolve = true, generateNewScramble = true)
         }
     }
 
@@ -400,33 +466,45 @@ fun Timer(
         }
     }
 
+    // Effect to reset timer when selectedTag changes
+    LaunchedEffect(selectedTag) {
+        // Reset timer state when tag changes
+        if (isRunning) {
+            isRunning = false
+            onTimerRunningChange(false)
+        }
+
+        // Reset timer state and generate new scramble
+        resetTimerState(resetCompletedSolve = true, generateNewScramble = true)
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         // 1) Zona clicable general (Scramble + Stats + zona vacía)
         Box(
             modifier = Modifier
                 .matchParentSize()
-                .pointerInput(isRunning) {
+                .pointerInput(isRunning, isInCooldown) { // Add isInCooldown as a key to recompose when it changes
                     detectTapGestures { offset ->
-                        // Solo cuando esté parado lanzamos trigger
-                        if (!isRunning) {
-                            // We should NOT save the solve when starting the timer
-                            // Just reset completedSolve if it exists
-                            if (completedSolve != null) {
-                                completedSolve = null
-                            }
+                        // Ignore all tap gestures when in cooldown
+                        if (isInCooldown) {
+                            return@detectTapGestures
+                        }
 
-                            onExternalTriggerHandled()       // resetea externalTrigger
-                            isRunning = true
-                            onTimerRunningChange(true)
-                            elapsedTime = 0L
-                            isDNF = false
-                            hasAddedTwoSeconds = false
-                            originalTime = 0L // Reset original time
+                        // Solo cuando esté parado lanzamos trigger
+                        if (!isRunning) { // We already checked for cooldown above
+                            // Reset timer state and completedSolve
+                            resetTimerState(resetCompletedSolve = true)
+
+                            // Start timer and reset external trigger
+                            startTimer(resetExternalTrigger = true)
                         } else {
                             // When running, click to stop
                             isRunning = false
                             showControls = true
                             onTimerRunningChange(false)
+
+                            // Set cooldown to prevent immediate restart
+                            setCooldown(800) // 1000ms cooldown for tap gesture
 
                             // Create a Solve object when the timer stops
                             val solveStatus =
@@ -451,6 +529,9 @@ fun Timer(
 
                             // Increment stats refresh trigger to update statistics
                             statsRefreshTrigger += 1
+
+                            // Generate a new scramble for the next solve
+                            scramble = generateScramble()
                         }
                     }
                 }
@@ -471,22 +552,24 @@ fun Timer(
                 exit = fadeOut(animationSpec = tween(durationMillis = 150))
             ) {
                 ScrambleBar(
+                    initialScramble = scramble, // Pass the Timer's scramble as initialScramble
                     onEdit = { /* Edit logic */ },
-                    onShuffle = { scramble = generateScramble() },
-                    onScrambleClick = {
-                        // We should NOT save the solve when starting the timer
-                        // Just reset completedSolve if it exists
-                        if (completedSolve != null) {
-                            completedSolve = null
+                    onShuffle = { 
+                        // Only update the scramble if not in cooldown
+                        if (!isInCooldown) {
+                            // Update the Timer's scramble when the ScrambleBar's scramble changes
+                            scramble = generateScramble()
                         }
+                    },
+                    onScrambleClick = {
+                        // Check if we're in cooldown period
+                        if (!isInCooldown) {
+                            // Reset timer state and completedSolve
+                            resetTimerState(resetCompletedSolve = true)
 
-                        isRunning = true
-                        onTimerRunningChange(true)
-                        elapsedTime = 0L
-                        showControls = false
-                        isDNF = false
-                        hasAddedTwoSeconds = false
-                        originalTime = 0L
+                            isRunning = true
+                            onTimerRunningChange(true)
+                        }
                     }
                 )
             }
@@ -619,11 +702,7 @@ fun Timer(
                                                         statsRefreshTrigger += 1
 
                                                         // Update UI on the main thread
-                                                        elapsedTime = 0
-                                                        showControls = false
-                                                        isDNF = false
-                                                        hasAddedTwoSeconds = false
-                                                        completedSolve = null // Clear the completed solve
+                                                        resetTimerState(resetCompletedSolve = true)
                                                         // Note: We can't clear previousSolve here as it's a val in the parent composable
                                                     }
                                                 } catch (e: Exception) {
@@ -634,30 +713,22 @@ fun Timer(
                                         } else {
                                             println("[DEBUG_LOG] Cannot delete solve: ID is empty")
                                             // Still reset UI for empty ID
-                                            elapsedTime = 0
-                                            showControls = false
-                                            isDNF = false
-                                            hasAddedTwoSeconds = false
-                                            completedSolve = null // Clear the completed solve
+                                            resetTimerState(resetCompletedSolve = true)
                                         }
                                     } else {
                                         println("[DEBUG_LOG] Cannot delete solve: completedSolve is null")
                                         // Still reset UI for null completedSolve
-                                        elapsedTime = 0
-                                        showControls = false
-                                        isDNF = false
-                                        hasAddedTwoSeconds = false
-                                        completedSolve = null // Clear the completed solve
+                                        resetTimerState(resetCompletedSolve = true)
                                     }
                                 },
                                 modifier = Modifier
                                     .size(48.dp)
-                                    .background(Color(0xFF5A57FF), CircleShape)
+                                    .background(MaterialTheme.colorScheme.secondary, CircleShape)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Close,
                                     contentDescription = "Remove attempt",
-                                    tint = Color.White,
+                                    tint = MaterialTheme.colorScheme.onSecondary,
                                     modifier = Modifier.size(24.dp)
                                 )
                             }
@@ -736,11 +807,11 @@ fun Timer(
                                 },
                                 modifier = Modifier
                                     .size(48.dp)
-                                    .background(Color(0xFF5A57FF), CircleShape)
+                                    .background(MaterialTheme.colorScheme.secondary, CircleShape)
                             ) {
                                 Text(
                                     text = "DNF",
-                                    color = Color.White,
+                                    color = MaterialTheme.colorScheme.onSecondary,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 14.sp
                                 )
@@ -824,12 +895,12 @@ fun Timer(
                                 },
                                 modifier = Modifier
                                     .size(48.dp)
-                                    .background(Color(0xFF5A57FF), CircleShape)
+                                    .background(MaterialTheme.colorScheme.secondary, CircleShape)
                             ) {
                                 Icon(
                                     imageVector = if (hasAddedTwoSeconds) Icons.Default.Tag else Icons.Default.Add,
                                     contentDescription = if (hasAddedTwoSeconds) "Remove 2 seconds" else "Add 2 seconds",
-                                    tint = Color.White,
+                                    tint = MaterialTheme.colorScheme.onSecondary,
                                     modifier = Modifier.size(24.dp)
                                 )
                             }
@@ -838,42 +909,21 @@ fun Timer(
                             IconButton(
                                 onClick = {
                                     // Show a dialog to add a comment
-                                    // For now, we'll just update the completedSolve with an empty comment
-                                    // In a real implementation, you would show a dialog to let the user enter a comment
                                     if (completedSolve != null) {
-                                        // Check if we have a valid ID
-                                        if (completedSolve!!.id.isEmpty() && previousSolve != null && previousSolve!!.id.isNotEmpty()) {
-                                            // Use the ID from previousSolve if completedSolve doesn't have one
-                                            println("[DEBUG_LOG] Using ID from previousSolve for comment: ${previousSolve!!.id}")
-                                            completedSolve = completedSolve!!.copy(
-                                                id = previousSolve!!.id,
-                                                comments = ""
-                                            )
-                                        } else {
-                                            // Use the existing ID
-                                            completedSolve = completedSolve!!.copy(comments = "")
-                                        }
-
-                                        // Save the updated solve immediately
-                                        if (completedSolve!!.id.isNotEmpty()) {
-                                            println("[DEBUG_LOG] Updating solve with ID: ${completedSolve!!.id}")
-                                            onSolveComplete(completedSolve!!)
-
-                                            // Increment stats refresh trigger to update statistics
-                                            statsRefreshTrigger += 1
-                                        } else {
-                                            println("[DEBUG_LOG] Cannot update solve: ID is empty")
-                                        }
+                                        // Initialize comment text with current comment (if any)
+                                        commentText = completedSolve!!.comments
+                                        // Show comment dialog
+                                        showCommentDialog = true
                                     }
                                 },
                                 modifier = Modifier
                                     .size(48.dp)
-                                    .background(Color(0xFF5A57FF), CircleShape)
+                                    .background(MaterialTheme.colorScheme.secondary, CircleShape)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Edit,
                                     contentDescription = "Add comment",
-                                    tint = Color.White,
+                                    tint = MaterialTheme.colorScheme.onSecondary,
                                     modifier = Modifier.size(24.dp)
                                 )
                             }
@@ -899,6 +949,66 @@ fun Timer(
                 )
             }
         }
+    }
+
+    // Comment Dialog
+    if (showCommentDialog) {
+        AlertDialog(
+            onDismissRequest = { showCommentDialog = false },
+            title = { Text("Add Comment") },
+            text = {
+                OutlinedTextField(
+                    value = commentText,
+                    onValueChange = { commentText = it },
+                    label = { Text("Comment") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        // Update the solve with the comment
+                        if (completedSolve != null) {
+                            // Check if we have a valid ID
+                            if (completedSolve!!.id.isEmpty() && previousSolve != null && previousSolve!!.id.isNotEmpty()) {
+                                // Use the ID from previousSolve if completedSolve doesn't have one
+                                println("[DEBUG_LOG] Using ID from previousSolve for comment: ${previousSolve!!.id}")
+                                completedSolve = completedSolve!!.copy(
+                                    id = previousSolve!!.id,
+                                    comments = commentText
+                                )
+                            } else {
+                                // Use the existing ID
+                                completedSolve = completedSolve!!.copy(comments = commentText)
+                            }
+
+                            // Save the updated solve immediately
+                            if (completedSolve!!.id.isNotEmpty()) {
+                                println("[DEBUG_LOG] Updating solve with ID: ${completedSolve!!.id}")
+                                onSolveComplete(completedSolve!!)
+
+                                // Increment stats refresh trigger to update statistics
+                                statsRefreshTrigger += 1
+                            } else {
+                                println("[DEBUG_LOG] Cannot update solve: ID is empty")
+                            }
+                        }
+
+                        // Close the dialog
+                        showCommentDialog = false
+                    }
+                ) {
+                    Text("Save")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showCommentDialog = false }
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }
 
@@ -942,7 +1052,7 @@ fun CubeTopBar(
     modifier: Modifier = Modifier,
     title: String = "3x3 Cube",
     subtitle: String = "normal",
-    backgroundColor: Color = Color(0xFF5A57FF),
+    backgroundColor: Color = MaterialTheme.colorScheme.secondary,
     contentColor: Color = Color.White,
     onSettingsClick: () -> Unit = {},
     onOptionsClick: () -> Unit = {},
@@ -1008,7 +1118,76 @@ fun CubeTopBar(
 fun generateScramble(): String {
     val moves = listOf("R", "L", "U", "D", "F", "B")
     val suffix = listOf("", "'", "2")
-    return List(20) { "${moves.random()}${suffix.random()}" }.joinToString(" ")
+    val scramble = mutableListOf<String>()
+    var lastMove = ""
+    var lastAxis = ""
+
+    // Generate 20 moves
+    repeat(20) {
+        var move: String
+        var axis: String
+
+        // Keep generating until we get a valid move
+        do {
+            move = moves.random()
+            axis = when (move) {
+                "R", "L" -> "RL"
+                "U", "D" -> "UD"
+                "F", "B" -> "FB"
+                else -> ""
+            }
+
+            // Avoid moves on the same axis as the last move (which would cancel out)
+            // Also avoid the same move twice in a row
+        } while (move == lastMove || axis == lastAxis)
+
+        // Update last move and axis
+        lastMove = move
+        lastAxis = axis
+
+        // Add the move with a random suffix
+        scramble.add("$move${suffix.random()}")
+    }
+
+    return scramble.joinToString(" ")
+}
+
+@Composable
+fun StatisticsCard(
+    modifier: Modifier = Modifier,
+    selectedCubeType: String = CubeType.CUBE_3X3.displayName,
+    selectedTag: String = "normal",
+    refreshTrigger: Long = 0 // Parameter to trigger refresh
+) {
+    // State for statistics
+    var stats by remember { mutableStateOf<SolveStatistics>(SolveStatistics()) }
+
+    // Coroutine scope for async operations
+    val coroutineScope = rememberCoroutineScope()
+
+    // Effect to update statistics when refreshTrigger changes
+    LaunchedEffect(refreshTrigger, selectedCubeType, selectedTag) {
+        val cubeType = CubeType.fromDisplayName(selectedCubeType)
+        stats = firebaseRepository.getStats(cubeType, selectedTag)
+    }
+
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp)
+        ) {
+            Text("Average: ${formatDouble(stats.average)}", color = MaterialTheme.colorScheme.onPrimary)
+            Text("Best: ${formatTime(stats.best)}", color = MaterialTheme.colorScheme.onPrimary)
+            Text("Count: ${stats.count}", color = MaterialTheme.colorScheme.onPrimary)
+            Text("Deviation: ${if (stats.deviation > 0) String.format("%.2f", stats.deviation / 1000) else "--"}", color = MaterialTheme.colorScheme.onPrimary)
+            Text("Ao5: ${formatDouble(stats.ao5)}  •  Ao12: ${formatDouble(stats.ao12)}  •  Ao50: ${formatDouble(stats.ao50)}  •  Ao100: ${formatDouble(stats.ao100)}", color = MaterialTheme.colorScheme.onPrimary)
+        }
+    }
 }
 
 @Composable
@@ -1087,22 +1266,22 @@ fun StatisticsComponent(
             Text(
                 text = "Average: ${formatDouble(stats.average)}",
                 style = StatisticsTextStyle,
-                color = TimerTextColor
+                color = MaterialTheme.colorScheme.onPrimary
             )
             Text(
                 text = "Best: ${formatTime(stats.best)}",
                 style = StatisticsTextStyle,
-                color = TimerTextColor
+                color = MaterialTheme.colorScheme.onPrimary
             )
             Text(
                 text = "Count: ${stats.count}",
                 style = StatisticsTextStyle,
-                color = TimerTextColor
+                color = MaterialTheme.colorScheme.onPrimary
             )
             Text(
                 text = "Deviation: ${if (stats.deviation > 0) String.format("%.2f", stats.deviation / 1000) else "--"}",
                 style = StatisticsTextStyle,
-                color = TimerTextColor
+                color = MaterialTheme.colorScheme.onPrimary
             )
         }
 
@@ -1116,22 +1295,22 @@ fun StatisticsComponent(
             Text(
                 text = "Ao5: ${formatDouble(stats.ao5)}",
                 style = StatisticsTextStyle,
-                color = TimerTextColor
+                color = MaterialTheme.colorScheme.onPrimary
             )
             Text(
                 text = "Ao12: ${formatDouble(stats.ao12)}",
                 style = StatisticsTextStyle,
-                color = TimerTextColor
+                color = MaterialTheme.colorScheme.onPrimary
             )
             Text(
                 text = "Ao50: ${formatDouble(stats.ao50)}",
                 style = StatisticsTextStyle,
-                color = TimerTextColor
+                color = MaterialTheme.colorScheme.onPrimary
             )
             Text(
                 text = "Ao100: ${formatDouble(stats.ao100)}",
                 style = StatisticsTextStyle,
-                color = TimerTextColor
+                color = MaterialTheme.colorScheme.onPrimary
             )
         }
     }
@@ -1140,12 +1319,19 @@ fun StatisticsComponent(
 @Composable
 fun ScrambleBar(
     modifier: Modifier = Modifier,
-    contentColor: Color = Color.White,
+    contentColor: Color = MaterialTheme.colorScheme.onPrimary,
+    initialScramble: String = generateScramble(), // Use provided initial scramble
     onEdit: (current: String) -> Unit = {},
     onShuffle: () -> Unit = {},
     onScrambleClick: () -> Unit = {}
 ) {
-    var scramble by remember { mutableStateOf(generateScramble()) }
+    // Initialize with the provided initialScramble
+    var scramble by remember { mutableStateOf(initialScramble) }
+
+    // Update internal scramble state when initialScramble changes
+    LaunchedEffect(initialScramble) {
+        scramble = initialScramble
+    }
 
     Column(
         modifier = modifier
@@ -1194,7 +1380,8 @@ fun ScrambleBar(
                 // Refresh icon
                 IconButton(
                     onClick = {
-                        scramble = generateScramble()
+                        // Just call onShuffle which will update the Timer's scramble
+                        // and the ScrambleBar will get the new scramble on recomposition
                         onShuffle()
                     },
                     modifier = Modifier.size(36.dp)
@@ -1290,6 +1477,10 @@ fun TagInputDialog(
     // State for showing the add tag input field
     var showAddTagInput by remember { mutableStateOf(false) }
 
+    // State for showing the delete confirmation dialog
+    var showDeleteConfirmation by remember { mutableStateOf(false) }
+    var tagToDelete by remember { mutableStateOf("") }
+
     // Coroutine scope for async operations
     val coroutineScope = rememberCoroutineScope()
 
@@ -1331,7 +1522,7 @@ fun TagInputDialog(
                         Icon(
                             imageVector = Icons.Default.Edit,
                             contentDescription = "Add new tag",
-                            tint = Color(0xFF5A57FF)
+                            tint = MaterialTheme.colorScheme.secondary
                         )
                     }
                 }
@@ -1375,12 +1566,12 @@ fun TagInputDialog(
                             },
                             modifier = Modifier
                                 .size(40.dp)
-                                .background(Color(0xFF5A57FF), CircleShape)
+                                .background(MaterialTheme.colorScheme.secondary, CircleShape)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Add,
                                 contentDescription = "Add tag",
-                                tint = Color.White,
+                                tint = MaterialTheme.colorScheme.onSecondary,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -1414,7 +1605,7 @@ fun TagInputDialog(
                                     Icon(
                                         imageVector = Icons.Default.Tag,
                                         contentDescription = "Selected",
-                                        tint = Color(0xFF5A57FF),
+                                        tint = MaterialTheme.colorScheme.secondary,
                                         modifier = Modifier.size(18.dp) // Slightly smaller icon
                                     )
                                     Spacer(modifier = Modifier.width(6.dp)) // Reduced spacing
@@ -1431,24 +1622,8 @@ fun TagInputDialog(
                             if (tag != "normal") {
                                 IconButton(
                                     onClick = {
-                                        coroutineScope.launch {
-                                            val success = firebaseRepository.removeTag(tag)
-                                            if (success) {
-                                                // If the deleted tag was selected, select "normal"
-                                                if (selectedTag == tag) {
-                                                    selectedTag = "normal"
-                                                    // Apply the selection immediately
-                                                    onTagConfirmed(selectedTag)
-                                                    // Dismiss the dialog
-                                                    onDismiss()
-                                                }
-                                                // Refresh the tag list
-                                                tags = firebaseRepository.getTags()
-                                            } else {
-                                                showError = true
-                                                errorMessage = "Failed to delete tag"
-                                            }
-                                        }
+                                        tagToDelete = tag
+                                        showDeleteConfirmation = true
                                     },
                                     modifier = Modifier.size(32.dp) // Smaller button for more compact design
                                 ) {
@@ -1487,6 +1662,49 @@ fun TagInputDialog(
                 }
             }
         }
+
+        // Delete confirmation dialog
+        if (showDeleteConfirmation) {
+            AlertDialog(
+                onDismissRequest = { showDeleteConfirmation = false },
+                title = { Text("Delete Tag") },
+                text = { Text("Are you sure you want to delete the tag \"$tagToDelete\"? This will delete all timers with this tag.") },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            coroutineScope.launch {
+                                val success = firebaseRepository.removeTag(tagToDelete)
+                                if (success) {
+                                    // If the deleted tag was selected, select "normal"
+                                    if (selectedTag == tagToDelete) {
+                                        selectedTag = "normal"
+                                        // Apply the selection immediately
+                                        onTagConfirmed(selectedTag)
+                                        // Dismiss the dialog
+                                        onDismiss()
+                                    }
+                                    // Refresh the tag list
+                                    tags = firebaseRepository.getTags()
+                                } else {
+                                    showError = true
+                                    errorMessage = "Failed to delete tag"
+                                }
+                                showDeleteConfirmation = false
+                            }
+                        }
+                    ) {
+                        Text("Delete")
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = { showDeleteConfirmation = false }
+                    ) {
+                        Text("Cancel")
+                    }
+                }
+            )
+        }
     }
 }
 
@@ -1504,8 +1722,11 @@ fun formatTime(timeMillis: Long): String {
 }
 
 fun formatDouble(value: Double): String {
-    if (value == 0.0) return "--"
-    return formatTime(value.toLong())
+    return when {
+        value == 0.0 -> "--"
+        value == -1.0 -> "DNF"
+        else -> formatTime(value.toLong())
+    }
 }
 
 @Composable
