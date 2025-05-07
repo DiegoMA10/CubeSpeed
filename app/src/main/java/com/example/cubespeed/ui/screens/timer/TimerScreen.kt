@@ -1,6 +1,7 @@
 package com.example.cubespeed.ui.screens.timer
 
-import android.os.Bundle
+import android.content.Context
+import android.os.PowerManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -40,6 +41,8 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.ui.draw.scale
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -82,40 +85,49 @@ import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.BaselineShift
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.IntSize
 import com.example.cubespeed.model.CubeType
 import com.example.cubespeed.model.Solve
 import com.example.cubespeed.model.SolveStatus
 import com.example.cubespeed.repository.FirebaseRepository
 import com.example.cubespeed.repository.SolveStatistics
+import com.example.cubespeed.state.AppState
+import com.example.cubespeed.ui.components.FixedSizeAnimatedVisibility
+import com.example.cubespeed.ui.components.CubeTopBar
 import com.example.cubespeed.ui.theme.StatisticsTextStyle
 import com.example.cubespeed.ui.theme.TimerTextColor
 import com.google.firebase.Firebase
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.auth
 import kotlin.math.min
-
-val userId = Firebase.auth.currentUser?.uid
+import androidx.compose.ui.graphics.Brush
 
 // Create a single instance of FirebaseRepository to be used throughout the app
 val firebaseRepository = FirebaseRepository()
 
 @Composable
-fun TimerScreen() {
-    // State for the selected cube type and tag
-    var selectedCubeType by remember { mutableStateOf(CubeType.CUBE_3X3.displayName) }
-    var selectedTag by remember { mutableStateOf("normal") }
+fun TimerScreen(
+    onTimerRunningChange: (Boolean) -> Unit = {}
+) {
+    // Use shared state for the selected cube type and tag
+    var selectedCubeType by remember { mutableStateOf(AppState.selectedCubeType) }
+    var selectedTag by remember { mutableStateOf(AppState.selectedTag) }
 
     // Coroutine scope for async operations
     val coroutineScope = rememberCoroutineScope()
@@ -133,8 +145,52 @@ fun TimerScreen() {
     // State to track if timer is running
     var isTimerRunning by remember { mutableStateOf(false) }
 
+    // Effect to notify parent when timer running state changes
+    LaunchedEffect(isTimerRunning) {
+        onTimerRunningChange(isTimerRunning)
+    }
+
+    // Get the current context
+    val context = LocalContext.current
+
+    // DisposableEffect to acquire and release wake lock when timer is running
+    DisposableEffect(isTimerRunning) {
+        // Get the PowerManager service
+        val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+
+        // Create a wake lock
+        val wakeLock = powerManager.newWakeLock(
+            PowerManager.SCREEN_BRIGHT_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP,
+            "CubeSpeed:TimerWakeLock"
+        )
+
+        // Acquire the wake lock if the timer is running
+        if (isTimerRunning) {
+            if (!wakeLock.isHeld) {
+                wakeLock.acquire() // 30 minutes timeout as a safety measure
+                println("[DEBUG_LOG] Wake lock acquired")
+            }
+        }
+
+        // Release the wake lock when the effect is disposed
+        onDispose {
+            if (wakeLock.isHeld) {
+                wakeLock.release()
+                println("[DEBUG_LOG] Wake lock released")
+            }
+        }
+    }
+
     // State for statistics refresh trigger
     var statsRefreshTrigger by remember { mutableLongStateOf(0L) }
+
+    // Observe changes to AppState and update local state
+    LaunchedEffect(AppState.selectedCubeType, AppState.selectedTag) {
+        selectedCubeType = AppState.selectedCubeType
+        selectedTag = AppState.selectedTag
+        // Increment stats refresh trigger to update statistics when cube type or tag changes
+        statsRefreshTrigger += 1
+    }
 
     // List of available cube types
     val cubeTypes = CubeType.getAllDisplayNames()
@@ -195,7 +251,7 @@ fun TimerScreen() {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.primary)
+
     ) {
         // Scaffold te aplica automáticamente padding en content por la bottomBar
         Column(
@@ -205,38 +261,12 @@ fun TimerScreen() {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            // Only show CubeTopBar when timer is not running
-            FixedSizeAnimatedVisibility(
-                visible = !isTimerRunning,
-                enter = fadeIn(animationSpec = tween(durationMillis = 400)),
-                exit = fadeOut(animationSpec = tween(durationMillis = 400))
-            ) {
-                CubeTopBar(
-                    title = selectedCubeType,
-                    subtitle = selectedTag,
-                    onOptionsClick = { showTagDialog = true },
-                    onCubeClick = { showCubeSelectionDialog = true }
-                )
-            }
+            // CubeTopBar is now in MainTabsScreen
 
             // Use the remembered Timer composable
             timer()
 
             // Statistics card at the bottom
-            if (!isTimerRunning) {
-                StatisticsCard(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(
-                            start = 16.dp,
-                            end = 16.dp,
-                            bottom = 16.dp
-                        ),
-                    selectedCubeType = selectedCubeType,
-                    selectedTag = selectedTag,
-                    refreshTrigger = statsRefreshTrigger
-                )
-            }
         }
     }
 
@@ -246,6 +276,7 @@ fun TimerScreen() {
             cubeTypes = cubeTypes,
             onCubeSelected = {
                 selectedCubeType = it
+                AppState.selectedCubeType = it
                 showCubeSelectionDialog = false
             },
             onDismiss = { showCubeSelectionDialog = false }
@@ -258,6 +289,7 @@ fun TimerScreen() {
             currentTag = selectedTag,
             onTagConfirmed = {
                 selectedTag = it
+                AppState.selectedTag = it
                 showTagDialog = false
             },
             onDismiss = { showTagDialog = false }
@@ -280,7 +312,7 @@ fun Timer(
     var elapsedTime by remember { mutableLongStateOf(0L) }
     var startTime by remember { mutableLongStateOf(0L) }
     var showControls by remember { mutableStateOf(false) }
-    val showWithDelay = remember { mutableStateOf(false) }
+    val showWithDelay = remember { mutableStateOf(true) }
 
     // Cooldown state to prevent spam clicking
     var isInCooldown by remember { mutableStateOf(false) }
@@ -294,21 +326,7 @@ fun Timer(
 
     // Function to calculate font size based on text length will be used instead of a state variable
 
-    // Function to calculate font size based on text length
-    fun calculateFontSize(text: String): TextUnit {
-        // Base size for short text (1-3 characters)
-        val baseSize = 120.sp
-
-        // Adjust size based on text length
-        return when {
-            text.length <= 3 -> baseSize
-            text.length <= 5 -> baseSize.times(0.85f)
-            text.length <= 7 -> baseSize.times(0.7f)
-            text.length <= 9 -> baseSize.times(0.6f)
-            text.length <= 12 -> baseSize.times(0.5f)
-            else -> baseSize.times(0.4f)
-        }
-    }
+    // Use the file-level calculateFontSize function
 
     var timerColor by remember { mutableStateOf(Color.White) }
     var isDNF by remember { mutableStateOf(false) }
@@ -372,8 +390,14 @@ fun Timer(
     }
 
 
+    // Track if this is the first time the app is launched
+    var isFirstLaunch = remember { mutableStateOf(true) }
+
     LaunchedEffect(isRunning) {
-        if (!isRunning) {
+        if (isFirstLaunch.value) {
+            // On first launch, showWithDelay is already true (set in the declaration)
+            isFirstLaunch.value = false
+        } else if (!isRunning) {
             showWithDelay.value = false
             delay(500)
             showWithDelay.value = true
@@ -540,11 +564,13 @@ fun Timer(
         // 2) Contenido de la UI, por encima de esa capa táctil
         Column(
             modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally,
+
         ) {
             // a) Scramble + estadísticas solo si NO está corriendo
             FixedSizeAnimatedVisibility(
                 visible = showWithDelay.value,
+
                 enter = slideInVertically(
                     initialOffsetY = { -it + 175 },
                     animationSpec = tween(durationMillis = 500)
@@ -554,7 +580,7 @@ fun Timer(
                 ScrambleBar(
                     initialScramble = scramble, // Pass the Timer's scramble as initialScramble
                     onEdit = { /* Edit logic */ },
-                    onShuffle = { 
+                    onShuffle = {
                         // Only update the scramble if not in cooldown
                         if (!isInCooldown) {
                             // Update the Timer's scramble when the ScrambleBar's scramble changes
@@ -581,94 +607,55 @@ fun Timer(
                     .weight(1f)
                     .fillMaxWidth(),
                 contentAlignment = Alignment.Center
-
             ) {
 
                 // Now place the timer display and controls on top
                 Column(
-                    Modifier.padding(bottom = 60.dp), horizontalAlignment = Alignment.CenterHorizontally
-                    // Move timer higher on screen
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
                 ) {
-                    // Check if we should display DNF or the time
-                    if (isDNF) {
-                        // Display DNF
-                        Row(
-                            verticalAlignment = Alignment.Bottom,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 24.dp)
-                        ) {
-                            // Wrap DNF text in a Box with the scale modifier for consistency
-                            Box(
-                                modifier = Modifier.scale(timerScale).fillMaxWidth(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "DNF",
-                                    fontSize = calculateFontSize("DNF"),
-                                    fontWeight = FontWeight.Bold,
-                                    color = timerColor,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Clip
-                                )
-                            }
-                        }
-                    } else {
-                        // Split time into main part and milliseconds
-                        val timeString = formatTime(elapsedTime)
-                        val parts = timeString.split(".")
-                        val mainPart = parts[0]
-                        val millisPart = if (parts.size > 1) ".${parts[1]}" else ""
 
-                        // Timer display with different sizes for main time and milliseconds
-                        Row(
-                            verticalAlignment = Alignment.Bottom, // Align items to the bottom
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 24.dp)
-                        ) {
-                            // Wrap both text components in a Box with the scale modifier
-                            Box(
-                                modifier = Modifier.scale(timerScale).fillMaxWidth(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.Bottom,
-                                    horizontalArrangement = Arrangement.Center,
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    // Calculate font size based on the full time string
-                                    val fullTimeString = mainPart + millisPart + if (hasAddedTwoSeconds) "+" else ""
-                                    val calculatedSize = calculateFontSize(fullTimeString)
+                    // Get the current screen configuration for the timer display
+                    val configuration = LocalConfiguration.current
+                    val screenWidth = configuration.screenWidthDp
+                    val screenHeight = configuration.screenHeightDp
 
-                                    // Main part of the time (hours/minutes/seconds)
-                                    Text(
-                                        text = mainPart,
-                                        fontSize = calculatedSize,
-                                        fontWeight = FontWeight.Bold,
-                                        color = timerColor,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Clip
-                                    )
+                    // Check if we're in landscape mode (width > height)
+                    val isLandscape = screenWidth > screenHeight
 
-                                    // Milliseconds part with smaller font
-                                    Text(
-                                        text = millisPart + if (hasAddedTwoSeconds) "+" else "",
-                                        fontSize = calculatedSize.times(0.75f), // Smaller font for milliseconds
-                                        fontWeight = FontWeight.Bold,
-                                        color = timerColor,
-                                        modifier = Modifier.padding(bottom = 5.5.dp),
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Clip
-                                    )
-                                }
-                            }
-                        }
-                    }
+                    // Padding depends on orientation - less vertical padding in landscape
+                    val verticalPadding = if (isLandscape) 2.dp else 8.dp
+
+                    // Use the TimerDisplay component
+                    TimerDisplay(
+                        elapsedTime = elapsedTime,
+                        timerColor = timerColor,
+                        timerScale = timerScale,
+                        hasAddedTwoSeconds = hasAddedTwoSeconds,
+                        isDNF = isDNF,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = verticalPadding)
+                    )
 
                     // Control icons that appear when timer stops
                     if (showControls && !isRunning && elapsedTime > 0) {
+                        // Get the current screen configuration
+                        val configuration = LocalConfiguration.current
+                        val screenWidth = configuration.screenWidthDp
+                        val screenHeight = configuration.screenHeightDp
+
+                        // Check if we're in landscape mode (width > height)
+                        val isLandscape = screenWidth > screenHeight
+
+                        // Button and icon sizes depend on orientation
+                        val buttonSize = if (isLandscape) 40.dp else 48.dp
+                        val iconSize = if (isLandscape) 25.dp else 28.dp
+
                         Row(
-                            horizontalArrangement = Arrangement.SpaceEvenly,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 32.dp)
+                                .padding(horizontal = 16.dp)
                         ) {
                             // Icon to remove the attempt
                             IconButton(
@@ -722,14 +709,14 @@ fun Timer(
                                     }
                                 },
                                 modifier = Modifier
-                                    .size(48.dp)
-                                    .background(MaterialTheme.colorScheme.secondary, CircleShape)
+                                    .size(buttonSize)
+                                    .background(Color.Transparent, CircleShape)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Close,
                                     contentDescription = "Remove attempt",
-                                    tint = MaterialTheme.colorScheme.onSecondary,
-                                    modifier = Modifier.size(24.dp)
+                                    tint = MaterialTheme.colorScheme.onPrimary,
+                                    modifier = Modifier.size(iconSize)
                                 )
                             }
 
@@ -806,14 +793,14 @@ fun Timer(
                                     }
                                 },
                                 modifier = Modifier
-                                    .size(48.dp)
-                                    .background(MaterialTheme.colorScheme.secondary, CircleShape)
+                                    .size(buttonSize)
+                                    .background(Color.Transparent, CircleShape)
                             ) {
                                 Text(
                                     text = "DNF",
-                                    color = MaterialTheme.colorScheme.onSecondary,
+                                    color = MaterialTheme.colorScheme.onPrimary,
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 14.sp
+                                    fontSize = if (isLandscape) 12.sp else 14.sp
                                 )
                             }
 
@@ -894,14 +881,14 @@ fun Timer(
                                     }
                                 },
                                 modifier = Modifier
-                                    .size(48.dp)
-                                    .background(MaterialTheme.colorScheme.secondary, CircleShape)
+                                    .size(buttonSize)
+                                    .background(Color.Transparent, CircleShape)
                             ) {
                                 Icon(
                                     imageVector = if (hasAddedTwoSeconds) Icons.Default.Tag else Icons.Default.Add,
                                     contentDescription = if (hasAddedTwoSeconds) "Remove 2 seconds" else "Add 2 seconds",
-                                    tint = MaterialTheme.colorScheme.onSecondary,
-                                    modifier = Modifier.size(24.dp)
+                                    tint = MaterialTheme.colorScheme.onPrimary,
+                                    modifier = Modifier.size(iconSize)
                                 )
                             }
 
@@ -917,25 +904,37 @@ fun Timer(
                                     }
                                 },
                                 modifier = Modifier
-                                    .size(48.dp)
-                                    .background(MaterialTheme.colorScheme.secondary, CircleShape)
+                                    .size(buttonSize)
+                                    .background(Color.Transparent, CircleShape)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Edit,
                                     contentDescription = "Add comment",
-                                    tint = MaterialTheme.colorScheme.onSecondary,
-                                    modifier = Modifier.size(24.dp)
+                                    tint = MaterialTheme.colorScheme.onPrimary,
+                                    modifier = Modifier.size(iconSize)
                                 )
                             }
                         }
                     } else {
-                        Spacer(modifier = Modifier.size(48.dp))
+                        // Get the current screen configuration for the spacer
+                        val configuration = LocalConfiguration.current
+                        val screenWidth = configuration.screenWidthDp
+                        val screenHeight = configuration.screenHeightDp
+
+                        // Check if we're in landscape mode (width > height)
+                        val isLandscape = screenWidth > screenHeight
+
+                        // Spacer size depends on orientation
+                        val spacerSize = if (isLandscape) 40.dp else 48.dp
+
+                        Spacer(modifier = Modifier.size(spacerSize))
                     }
                 }
             }
 
             FixedSizeAnimatedVisibility(
                 visible = showWithDelay.value,
+
                 enter = slideInVertically(
                     initialOffsetY = { it - 200 },
                     animationSpec = tween(durationMillis = 600)
@@ -1012,108 +1011,8 @@ fun Timer(
     }
 }
 
-@Composable
-fun FixedSizeAnimatedVisibility(
-    visible: Boolean,
-    modifier: Modifier = Modifier,
-    enter: EnterTransition = fadeIn(),
-    exit: ExitTransition = fadeOut(),
-    content: @Composable () -> Unit
-) {
-    var contentSize by remember { mutableStateOf(IntSize.Zero) }
-    val density = LocalDensity.current
-
-    Box(modifier) {
-        AnimatedVisibility(
-            visible = visible,
-            enter = enter,
-            exit = exit
-        ) {
-            Box(
-                Modifier
-                    .onSizeChanged { contentSize = it }
-            ) {
-                content()
-            }
-        }
-        if (!visible && contentSize != IntSize.Zero) {
-            Spacer(
-                Modifier
-                    .requiredWidth(with(density) { contentSize.width.toDp() })
-                    .requiredHeight(with(density) { contentSize.height.toDp() })
-            )
-        }
-    }
-}
 
 
-@Composable
-fun CubeTopBar(
-    modifier: Modifier = Modifier,
-    title: String = "3x3 Cube",
-    subtitle: String = "normal",
-    backgroundColor: Color = MaterialTheme.colorScheme.secondary,
-    contentColor: Color = Color.White,
-    onSettingsClick: () -> Unit = {},
-    onOptionsClick: () -> Unit = {},
-    onCubeClick: () -> Unit = {}
-) {
-    Surface(
-        color = backgroundColor,
-        contentColor = contentColor,
-        shape = RoundedCornerShape(24.dp),
-        modifier = modifier
-            .fillMaxWidth()
-            .height(56.dp)
-            .padding(horizontal = 16.dp)
-    ) {
-        Row(
-            Modifier.fillMaxSize(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            IconButton(onClick = onSettingsClick) {
-                Icon(
-                    imageVector = Icons.Default.Settings,
-                    contentDescription = "Settings"
-                )
-            }
-
-            // Cube type + dropdown and tag centered
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.clickable(onClick = onCubeClick)
-                ) {
-                    Text(
-                        text = title,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp
-                    )
-                    Icon(
-                        imageVector = Icons.Default.ArrowDropDown,
-                        contentDescription = "Select Cube Type",
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-                Text(
-                    text = subtitle,
-                    fontSize = 12.sp,
-                    color = contentColor.copy(alpha = 0.7f)
-                )
-            }
-
-            IconButton(onClick = onOptionsClick) {
-                Icon(
-                    imageVector = Icons.Default.Tag,
-                    contentDescription = "Add Tag"
-                )
-            }
-        }
-    }
-}
 
 fun generateScramble(): String {
     val moves = listOf("R", "L", "U", "D", "F", "B")
@@ -1179,7 +1078,7 @@ fun StatisticsCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp)
+                .padding(8.dp)
         ) {
             Text("Average: ${formatDouble(stats.average)}", color = MaterialTheme.colorScheme.onPrimary)
             Text("Best: ${formatTime(stats.best)}", color = MaterialTheme.colorScheme.onPrimary)
@@ -1202,6 +1101,26 @@ fun StatisticsComponent(
 
     // State for count from direct query
     var solveCount by remember { mutableStateOf(0) }
+
+    // State for user ID that will be updated when auth state changes
+    var userId by remember { mutableStateOf(Firebase.auth.currentUser?.uid) }
+
+    // Effect to listen for auth state changes and update userId
+    DisposableEffect(Unit) {
+        // Set up auth state listener
+        val authStateListener = { auth: com.google.firebase.auth.FirebaseAuth ->
+            // Update userId when auth state changes
+            userId = auth.currentUser?.uid
+        }
+
+        // Add the auth state listener
+        Firebase.auth.addAuthStateListener(authStateListener)
+
+        // Remove the auth state listener when the effect is disposed
+        onDispose {
+            Firebase.auth.removeAuthStateListener(authStateListener)
+        }
+    }
 
     // Coroutine scope for async operations
     val coroutineScope = rememberCoroutineScope()
@@ -1253,16 +1172,16 @@ fun StatisticsComponent(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp),
+            .padding(horizontal = 8.dp),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         // Left side statistics
         Column(
             modifier = Modifier
-                .padding(8.dp),
+                .padding(4.dp),
             horizontalAlignment = Alignment.Start
         ) {
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = "Average: ${formatDouble(stats.average)}",
                 style = StatisticsTextStyle,
@@ -1288,10 +1207,10 @@ fun StatisticsComponent(
         // Right side averages
         Column(
             modifier = Modifier
-                .padding(8.dp),
+                .padding(4.dp),
             horizontalAlignment = Alignment.End
         ) {
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = "Ao5: ${formatDouble(stats.ao5)}",
                 style = StatisticsTextStyle,
@@ -1522,7 +1441,7 @@ fun TagInputDialog(
                         Icon(
                             imageVector = Icons.Default.Edit,
                             contentDescription = "Add new tag",
-                            tint = MaterialTheme.colorScheme.secondary
+                            tint = MaterialTheme.colorScheme.primary
                         )
                     }
                 }
@@ -1566,12 +1485,12 @@ fun TagInputDialog(
                             },
                             modifier = Modifier
                                 .size(40.dp)
-                                .background(MaterialTheme.colorScheme.secondary, CircleShape)
+                                .background(MaterialTheme.colorScheme.primary, CircleShape)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Add,
                                 contentDescription = "Add tag",
-                                tint = MaterialTheme.colorScheme.onSecondary,
+                                tint = MaterialTheme.colorScheme.onPrimary,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -1590,6 +1509,7 @@ fun TagInputDialog(
                                 .fillMaxWidth()
                                 .clickable { 
                                     selectedTag = tag
+                                    AppState.selectedTag = tag
                                     onTagConfirmed(tag)
                                     onDismiss()
                                 }
@@ -1605,7 +1525,7 @@ fun TagInputDialog(
                                     Icon(
                                         imageVector = Icons.Default.Tag,
                                         contentDescription = "Selected",
-                                        tint = MaterialTheme.colorScheme.secondary,
+                                        tint = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(18.dp) // Slightly smaller icon
                                     )
                                     Spacer(modifier = Modifier.width(6.dp)) // Reduced spacing
@@ -1678,6 +1598,7 @@ fun TagInputDialog(
                                     // If the deleted tag was selected, select "normal"
                                     if (selectedTag == tagToDelete) {
                                         selectedTag = "normal"
+                                        AppState.selectedTag = "normal"
                                         // Apply the selection immediately
                                         onTagConfirmed(selectedTag)
                                         // Dismiss the dialog
@@ -1708,6 +1629,39 @@ fun TagInputDialog(
     }
 }
 
+/**
+ * Function to calculate font size based on text length and screen orientation
+ */
+@Composable
+fun calculateFontSize(text: String): TextUnit {
+    // Get the current screen configuration
+    val configuration = LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp
+    val screenHeight = configuration.screenHeightDp
+
+    // Check if we're in landscape mode (width > height)
+    val isLandscape = screenWidth > screenHeight
+
+    // Base size depends on orientation
+    val baseSize = if (isLandscape) {
+        // In landscape, use a smaller base size
+        60.sp
+    } else {
+        // In portrait, use the original base size
+        120.sp
+    }
+
+    // Adjust size based on text length
+    return when {
+        text.length <= 3 -> baseSize
+        text.length <= 5 -> baseSize.times(0.85f)
+        text.length <= 7 -> baseSize.times(0.7f)
+        text.length <= 9 -> baseSize.times(0.6f)
+        text.length <= 12 -> baseSize.times(0.5f)
+        else -> baseSize.times(0.4f)
+    }
+}
+
 fun formatTime(timeMillis: Long): String {
     val hours = (timeMillis / 3600000).toInt()
     val minutes = ((timeMillis % 3600000) / 60000).toInt()
@@ -1715,7 +1669,7 @@ fun formatTime(timeMillis: Long): String {
     val millis = ((timeMillis % 1000) / 10).toInt()
 
     return when {
-        hours > 0 -> String.format("%d h %d:%02d.%02d", hours, minutes, seconds, millis)
+        hours > 0 -> String.format("%d h %d:%02d", hours, minutes, seconds)
         minutes > 0 -> String.format("%d:%02d.%02d", minutes, seconds, millis)
         else -> String.format("%d.%02d", seconds, millis)
     }
@@ -1726,6 +1680,105 @@ fun formatDouble(value: Double): String {
         value == 0.0 -> "--"
         value == -1.0 -> "DNF"
         else -> formatTime(value.toLong())
+    }
+}
+
+/**
+ * A reusable composable that displays the timer with proper formatting and styling.
+ */
+@Composable
+fun TimerDisplay(
+    elapsedTime: Long,
+    timerColor: Color,
+    timerScale: Float,
+    hasAddedTwoSeconds: Boolean,
+    isDNF: Boolean,
+    modifier: Modifier = Modifier
+) {
+    // Check if we should display DNF or the time
+    if (isDNF) {
+        // Format the time string to calculate the font size
+        val timeString = formatTime(elapsedTime)
+        val parts = timeString.split(".")
+        val mainPart = parts[0]
+        val millisPart = if (parts.size > 1) ".${parts[1]}" else ""
+        val fullTimeString = mainPart + millisPart + if (hasAddedTwoSeconds) "+" else ""
+
+        // Display DNF but use the timer's font size
+        Box(
+            modifier = modifier
+                .graphicsLayer(
+                    scaleX = timerScale,
+                    scaleY = timerScale,
+                    transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.5f, 0.5f)
+                )
+                .fillMaxWidth(),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "DNF",
+                fontSize = calculateFontSize(fullTimeString),
+                fontWeight = FontWeight.Bold,
+                color = timerColor,
+                maxLines = 1,
+                overflow = TextOverflow.Clip
+            )
+        }
+    } else {
+        // Split time into main part and milliseconds
+        val timeString = formatTime(elapsedTime)
+        val parts = timeString.split(".")
+        val mainPart = parts[0]
+        val millisPart = if (parts.size > 1) ".${parts[1]}" else ""
+
+        // Wrap both text components in a Box with the graphicsLayer modifier for proper scaling
+        Box(
+            modifier = modifier
+                .graphicsLayer(
+                    scaleX = timerScale,
+                    scaleY = timerScale,
+                    transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.5f, 0.5f)
+                )
+                .fillMaxWidth(),
+            contentAlignment = Alignment.Center
+        ) {
+            Row(
+
+                verticalAlignment = Alignment.Bottom,
+                horizontalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                // Calculate font size based on the full time string
+                val fullTimeString = mainPart + millisPart + if (hasAddedTwoSeconds) "+" else ""
+                val calculatedSize = calculateFontSize(fullTimeString)
+
+                // Main part of the time (hours/minutes/seconds)
+                Text(
+                    text = mainPart,
+                    style = TextStyle(
+                        fontSize = calculatedSize,
+                        fontWeight = FontWeight.Bold,
+                        color = timerColor,
+                        baselineShift = BaselineShift.None
+                    ),
+                    maxLines = 1,
+                    overflow = TextOverflow.Clip
+                )
+
+                // Milliseconds part with smaller font
+                Text(
+                    text = millisPart + if (hasAddedTwoSeconds) "+" else "",
+                    style = TextStyle(
+                        fontSize = calculatedSize.times(0.75f), // Smaller font for milliseconds
+                        fontWeight = FontWeight.Bold,
+                        color = timerColor,
+                        baselineShift = BaselineShift(0.082F)
+                    ),
+                    maxLines = 1,
+                    overflow = TextOverflow.Clip
+                )
+            }
+        }
     }
 }
 

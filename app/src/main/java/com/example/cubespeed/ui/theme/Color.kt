@@ -55,5 +55,6 @@ val SuccessGreen = Color(0xFF4CAF50)
 val WarningAmber = Color(0xFFFFC107)
 
 // Blue theme specific colors for TimerScreen
-val TimerScreenBackground = Color(0xFF3F51B5)
-val TimerScreenAccent = Color(0xFF5A57FF)
+val TimerScreenBackground = Color(0xFF2f74ff)
+val TimerScreenPrimaryBackground = Color(0xFF0000FF)
+val TimerScreenAccent = Color(0xFF003eff)

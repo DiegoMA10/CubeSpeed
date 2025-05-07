@@ -14,23 +14,47 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import com.example.cubespeed.model.CubeType
+import com.example.cubespeed.navigation.Route
 import com.example.cubespeed.repository.FirebaseRepository
 import com.example.cubespeed.repository.SolveStatistics
-import com.example.cubespeed.ui.screens.timer.CubeTopBar
+import com.example.cubespeed.state.AppState
+import com.example.cubespeed.ui.components.CubeTopBar
+import com.example.cubespeed.ui.screens.timer.CubeSelectionDialog
+import com.example.cubespeed.ui.screens.timer.TagInputDialog
 import com.example.cubespeed.ui.theme.StatisticsTextStyle
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 @Composable
-fun StatisticsScreen() {
+fun StatisticsScreen(navController: NavController? = null) {
     val repository = remember { FirebaseRepository() }
-    var selectedCubeType by remember { mutableStateOf(CubeType.CUBE_3X3.displayName) }
-    var selectedTag by remember { mutableStateOf("normal") }
+    // Use shared state for the selected cube type and tag
+    var selectedCubeType by remember { mutableStateOf(AppState.selectedCubeType) }
+    var selectedTag by remember { mutableStateOf(AppState.selectedTag) }
     var statistics by remember { mutableStateOf<SolveStatistics>(SolveStatistics()) }
+
+    // State for showing dialogs
+    var showCubeSelectionDialog by remember { mutableStateOf(false) }
+    var showTagDialog by remember { mutableStateOf(false) }
+
+    // Coroutine scope for async operations
+    val coroutineScope = rememberCoroutineScope()
+
+    // List of cube types
+    val cubeTypes = CubeType.getAllDisplayNames()
+
+    // Observe changes to AppState and update local state
+    LaunchedEffect(AppState.selectedCubeType, AppState.selectedTag) {
+        selectedCubeType = AppState.selectedCubeType
+        selectedTag = AppState.selectedTag
+    }
 
     // Fetch statistics when the screen is first displayed or when cube type/tag changes
     LaunchedEffect(key1 = selectedCubeType, key2 = selectedTag) {
@@ -41,14 +65,7 @@ fun StatisticsScreen() {
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // Reuse the CubeTopBar from TimerScreen
-        CubeTopBar(
-            title = "Statistics",
-            subtitle = "$selectedCubeType - $selectedTag",
-            onSettingsClick = { /* Handle settings click */ },
-            onOptionsClick = { /* Handle options click */ },
-            onCubeClick = { /* Handle cube click */ }
-        )
+        // CubeTopBar is now in MainTabsScreen
 
         // Display statistics
         Column(
@@ -66,6 +83,32 @@ fun StatisticsScreen() {
             StatisticsItem("Average of 50", formatDouble(statistics.ao50))
             StatisticsItem("Average of 100", formatDouble(statistics.ao100))
         }
+    }
+
+    // Cube Selection Dialog
+    if (showCubeSelectionDialog) {
+        CubeSelectionDialog(
+            cubeTypes = cubeTypes,
+            onCubeSelected = {
+                selectedCubeType = it
+                AppState.selectedCubeType = it
+                showCubeSelectionDialog = false
+            },
+            onDismiss = { showCubeSelectionDialog = false }
+        )
+    }
+
+    // Tag Dialog
+    if (showTagDialog) {
+        TagInputDialog(
+            currentTag = selectedTag,
+            onTagConfirmed = {
+                selectedTag = it
+                AppState.selectedTag = it
+                showTagDialog = false
+            },
+            onDismiss = { showTagDialog = false }
+        )
     }
 }
 

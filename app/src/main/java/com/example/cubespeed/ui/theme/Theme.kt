@@ -24,7 +24,7 @@ enum class AppThemeType {
 
 // Blue theme (light)
 private val BlueColorScheme = lightColorScheme(
-    primary = TimerScreenBackground,  // Using TimerScreen background color
+    primary = TimerScreenPrimaryBackground,  // Using TimerScreen background color
     secondary = TimerScreenAccent,    // Using TimerScreen accent color
     tertiary = BlueTertiary,
     background = BlueBackground,
@@ -32,7 +32,7 @@ private val BlueColorScheme = lightColorScheme(
     onPrimary = Color.White,
     onSecondary = Color.White,
     onTertiary = Color.White,
-
+    onPrimaryContainer = TimerScreenBackground,
     onBackground = Color(0xFF1C1B1F),
     onSurface = Color(0xFF1C1B1F)
 )
@@ -40,13 +40,14 @@ private val BlueColorScheme = lightColorScheme(
 // Light theme
 private val LightColorScheme = lightColorScheme(
     primary = Color.White,
-    secondary = Color.Gray,
-    tertiary = Color.Gray,
+    secondary = Color(0xFFF3F3F3),
+    tertiary = Color.White,
     background = Color.White,
     surface = Color.White,
     onPrimary = Color.Black,
-    onSecondary = Color.White,
+    onSecondary = Color.Black,
     onTertiary = Color.Black,
+    onPrimaryContainer = Color.White,
     onBackground = Color(0xFF1C1B1F),
     onSurface = Color(0xFF1C1B1F)
 )
@@ -54,7 +55,7 @@ private val LightColorScheme = lightColorScheme(
 // Dark theme
 private val DarkColorScheme = darkColorScheme(
     primary = Color.Black,
-    secondary = DarkSecondary,
+    secondary = Color.DarkGray,
     tertiary = DarkTertiary,
     background = Color.Black,
     surface = DarkSurface,
@@ -62,6 +63,7 @@ private val DarkColorScheme = darkColorScheme(
     onSecondary = Color.White,
     onTertiary = Color.White,
     onBackground = Color.White,
+    onPrimaryContainer = Color.Black,
     onSurface = Color.White
 )
 

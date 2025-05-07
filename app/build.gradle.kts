@@ -73,6 +73,13 @@ dependencies {
     implementation(libs.play.services.base)
     implementation(libs.play.services.safetynet)
 
+    // Accompanist for system UI controller
+    implementation("com.google.accompanist:accompanist-systemuicontroller:0.32.0")
+
+    // Jetpack Compose Pager (replaces Accompanist Pager)
+    implementation("androidx.compose.foundation:foundation:1.7.8")
+    implementation("androidx.compose.foundation:foundation-layout:1.7.8")
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

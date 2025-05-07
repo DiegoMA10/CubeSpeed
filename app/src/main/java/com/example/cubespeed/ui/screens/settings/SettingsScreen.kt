@@ -101,7 +101,8 @@ fun SettingsScreen(
 
                     Text(
                         text = "Email: ${currentUser?.email ?: "Not logged in"}",
-                        style = MaterialTheme.typography.bodyMedium
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
                 }
             }
