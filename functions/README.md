@@ -2,6 +2,22 @@
 
 This directory contains the Firebase Cloud Functions for the CubeSpeed application. These functions handle statistics calculations for cube solving times.
 
+## Data Model Update (2024)
+
+The data model has been updated to improve organization and performance:
+
+1. **New Collection Structure**:
+   - Solves are now stored in `/users/{userId}/solves/{solveId}` (previously in `/users/{userId}/timers/`)
+   - Stats remain in `/users/{userId}/stats/{cubeType_tagId}`
+
+2. **New Functions**:
+   - `migrateSolves`: HTTP function to migrate solves from the old path to the new path
+
+3. **Improved Reliability**:
+   - Transactions are used to handle race conditions when multiple solves are added/updated/deleted simultaneously
+   - Server timestamps ensure consistent ordering of solves
+   - Enhanced error handling and recovery
+
 ## Migration from Python to Node.js
 
 These functions were migrated from Python to Node.js (JavaScript) while maintaining the exact same functionality:
@@ -70,6 +86,67 @@ The functions have been optimized to significantly reduce Firestore reads:
   - `getStats`: 1GiB memory, 2 CPUs for fast response
   - `updateStatsOnSolve` and `updateStatsOnDelete`: 1GiB memory, 2 CPUs for efficient background processing
   - See [RESOURCE_CONFIG.md](./RESOURCE_CONFIG.md) for detailed configuration information
+
+## Migration Instructions
+
+To migrate existing data from the old structure to the new structure:
+
+1. Deploy the updated functions (see Deployment Instructions below)
+
+2. Call the `migrateSolves` HTTP function for each user:
+   ```
+   curl -X GET "https://us-central1-[YOUR-PROJECT-ID].cloudfunctions.net/migrateSolves?userId=[USER_ID]"
+   ```
+
+   Or use the Firebase Console to call the function manually:
+   - Go to Firebase Console > Functions
+   - Find the `migrateSolves` function
+   - Click "Test function"
+   - Add the parameter `userId` with the user's ID
+   - Click "Test function"
+
+3. The function will:
+   - Copy all solves from `/users/{userId}/timers/` to `/users/{userId}/solves/`
+   - Preserve all solve data including IDs
+   - Return a summary of the migration results
+
+4. After verifying the migration was successful, you can update your client app to use the new data structure (see Client-Side Changes below).
+
+## Client-Side Changes
+
+The following changes are needed in the client app to work with the new data structure:
+
+1. Update all references to `/users/{userId}/timers/` to use `/users/{userId}/solves/` instead:
+
+   ```kotlin
+   // Old code
+   firestore.collection("users").document(userId).collection("timers")
+
+   // New code
+   firestore.collection("users").document(userId).collection("solves")
+   ```
+
+2. When creating new solves, ensure the timestamp is set using server timestamp:
+
+   ```kotlin
+   // Old code
+   val solveData = hashMapOf(
+       "cube" to solve.cube.name,
+       "tagId" to solve.tagId,
+       "timestamp" to solve.timestamp,
+       // other fields...
+   )
+
+   // New code
+   val solveData = hashMapOf(
+       "cube" to solve.cube.name,
+       "tagId" to solve.tagId,
+       "timestamp" to FieldValue.serverTimestamp(),
+       // other fields...
+   )
+   ```
+
+3. The stats document structure remains the same, so no changes are needed for reading statistics.
 
 ## Deployment Instructions
 

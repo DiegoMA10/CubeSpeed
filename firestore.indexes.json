@@ -1,12 +1,95 @@
 {
   "indexes": [
     {
-      "collectionGroup": "timers",
+      "collectionGroup": "solves",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "cube", "order": "ASCENDING" },
-        { "fieldPath": "tagId", "order": "ASCENDING" },
-        { "fieldPath": "timestamp", "order": "DESCENDING" }
+        {
+          "fieldPath": "cube",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "tagId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "solves",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "cube",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "tagId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "timestamp",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "solves",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "cube",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "tagId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "duration",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "solves",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "cube",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "tagId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "duration",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
+        }
       ]
     }
   ],

@@ -41,7 +41,7 @@ exports.getStats = onRequest(
 ```javascript
 exports.updateStatsOnSolve = onDocumentWritten(
   { 
-    document: 'users/{userId}/timers/{timerId}',
+    document: 'users/{userId}/solves/{solveId}',
     region: "us-central1",
     memory: "512MiB",     // Sufficient for background processing
     cpu: 1,               // Single CPU is adequate

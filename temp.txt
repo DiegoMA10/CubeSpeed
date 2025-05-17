@@ -1,0 +1,350 @@
+/**
+ * Chart displaying solve times and moving averages with interactive panning.
+ */
+@Composable
+fun SolveTimeChart(
+    solves: List<Solve>,
+    movingAverages: Map<String, List<Double>>
+) {
+    // Define colors for the chart
+    val solveLineColor = Color.White // White line for all solves
+    val ao5LineColor = Color(0xFFFF5252) // Red line for Ao5
+    val ao12LineColor = Color(0xFF4CAF50) // Green line for Ao12
+    val bestPointColor = Color(0xFFFFEB3B) // Yellow points for best times
+
+    // State for pan
+    var offsetX by remember { mutableStateOf(0f) }
+    
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(240.dp),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primary // Blue background
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
+        ) {
+            // If no solves, show a message
+            if (solves.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "No solves available",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f) // White text on blue background
+                    )
+                }
+            } else {
+                // Prepare data for the chart
+                val solveTimes = solves.map { 
+                    getEffectiveTime(it.time, it.status).toDouble() / 1000.0 // Convert to seconds
+                }
+
+                // Simple chart legend
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // Solves legend
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(12.dp)
+                                .background(
+                                    color = solveLineColor, // White color for all solves
+                                    shape = RoundedCornerShape(2.dp)
+                                )
+                        )
+                        Text(
+                            text = "Todo",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onPrimary // White text on blue background
+                        )
+                    }
+
+                    // Best times legend
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(12.dp)
+                                .background(
+                                    color = bestPointColor, // Yellow color for best times
+                                    shape = RoundedCornerShape(6.dp) // More rounded for points
+                                )
+                        )
+                        Text(
+                            text = "Mejor",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onPrimary // White text on blue background
+                        )
+                    }
+
+                    // Ao5 legend if available
+                    if (movingAverages.containsKey("ao5")) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(12.dp)
+                                    .background(
+                                        color = ao5LineColor, // Red color for Ao5
+                                        shape = RoundedCornerShape(2.dp)
+                                    )
+                            )
+                            Text(
+                                text = "Ao5",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onPrimary // White text on blue background
+                            )
+                        }
+                    }
+
+                    // Ao12 legend if available
+                    if (movingAverages.containsKey("ao12")) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(12.dp)
+                                    .background(
+                                        color = ao12LineColor, // Green color for Ao12
+                                        shape = RoundedCornerShape(2.dp)
+                                    )
+                            )
+                            Text(
+                                text = "Ao12",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onPrimary // White text on blue background
+                            )
+                        }
+                    }
+                }
+
+                // Interactive chart using Canvas with gesture detection
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(top = 8.dp, end = 40.dp, bottom = 20.dp) // Add padding for axis labels
+                ) {
+                    // Find min and max values for scaling
+                    val allValues = mutableListOf<Double>()
+                    allValues.addAll(solveTimes)
+
+                    movingAverages.forEach { (_, values) ->
+                        allValues.addAll(values.map { it / 1000.0 }) // Convert to seconds
+                    }
+
+                    val minValue = allValues.minOrNull() ?: 0.0
+                    val maxValue = allValues.maxOrNull() ?: 0.0
+                    val valueRange = maxValue - minValue
+
+                    // Grid line color
+                    val gridLineColor = Color.White.copy(alpha = 0.3f) // White grid lines on blue background
+
+                    Canvas(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .pointerInput(Unit) {
+                                detectDragGestures { change, dragAmount ->
+                                    change.consume()
+                                    offsetX = (offsetX + dragAmount.x).coerceIn(-500f, 0f)
+                                }
+                            }
+                    ) {
+                        val canvasWidth = size.width
+                        val canvasHeight = size.height
+
+                        // Horizontal grid lines with Y-axis labels
+                        val numHorizontalLines = 5
+                        for (i in 0..numHorizontalLines) {
+                            val y = canvasHeight * (1 - i.toFloat() / numHorizontalLines)
+                            drawLine(
+                                color = gridLineColor,
+                                start = Offset(0f, y),
+                                end = Offset(canvasWidth, y),
+                                strokeWidth = 1f
+                            )
+                            
+                            // Calculate the time value for this grid line
+                            val timeValue = minValue + (valueRange * i / numHorizontalLines)
+                            
+                            // Draw time label on Y-axis
+                            drawIntoCanvas { canvas ->
+                                val paint = Paint().apply {
+                                    color = Color.White
+                                    textSize = 12.sp.toPx()
+                                    textAlign = Paint.Align.LEFT
+                                }
+                                canvas.drawText(
+                                    String.format("%.1f", timeValue),
+                                    canvasWidth + 5, // Position to the right of the chart
+                                    y + 5, // Align with grid line
+                                    paint
+                                )
+                            }
+                        }
+
+                        // Vertical grid lines for X-axis (solve numbers)
+                        val numVerticalLines = 5
+                        for (i in 0..numVerticalLines) {
+                            val x = canvasWidth * (i.toFloat() / numVerticalLines)
+                            drawLine(
+                                color = gridLineColor,
+                                start = Offset(x, 0f),
+                                end = Offset(x, canvasHeight),
+                                strokeWidth = 1f
+                            )
+
+                            // Calculate the solve number for this grid line
+                            val solveIndex = (i * solveTimes.size / numVerticalLines).coerceIn(0, solveTimes.size - 1)
+                            
+                            // Draw solve number label on X-axis
+                            if (solveTimes.isNotEmpty()) {
+                                drawIntoCanvas { canvas ->
+                                    val paint = Paint().apply {
+                                        color = Color.White
+                                        textSize = 12.sp.toPx()
+                                        textAlign = Paint.Align.CENTER
+                                    }
+                                    canvas.drawText(
+                                        (solveIndex + 1).toString(), // +1 to start from 1 instead of 0
+                                        x,
+                                        canvasHeight + 15, // Position below the chart
+                                        paint
+                                    )
+                                }
+                            }
+                        }
+
+                        // Draw solve times line
+                        if (solveTimes.size > 1) {
+                            val path = Path()
+                            val pointSpacing = canvasWidth / (solveTimes.size - 1)
+
+                            solveTimes.forEachIndexed { index, time ->
+                                val x = (index * pointSpacing) + offsetX
+                                val normalizedValue = if (valueRange > 0) (time - minValue) / valueRange else 0.5
+                                val y = canvasHeight * (1 - normalizedValue.toFloat())
+
+                                // Only draw points that are within the visible range
+                                if (x >= 0 && x <= canvasWidth) {
+                                    if (index == 0 || path.isEmpty) {
+                                        path.moveTo(x, y)
+                                    } else {
+                                        path.lineTo(x, y)
+                                    }
+                                }
+                            }
+
+                            drawPath(
+                                path = path,
+                                color = solveLineColor,
+                                style = Stroke(width = 2f)
+                            )
+                        }
+
+                        // Draw Ao5 line if available
+                        if (movingAverages.containsKey("ao5") && movingAverages["ao5"]!!.size > 1) {
+                            val ao5Values = movingAverages["ao5"]!!.map { it / 1000.0 }
+                            val path = Path()
+                            val pointSpacing = canvasWidth / (ao5Values.size - 1)
+
+                            ao5Values.forEachIndexed { index, time ->
+                                val x = (index * pointSpacing) + offsetX
+                                val normalizedValue = if (valueRange > 0) (time - minValue) / valueRange else 0.5
+                                val y = canvasHeight * (1 - normalizedValue.toFloat())
+
+                                // Only draw points that are within the visible range
+                                if (x >= 0 && x <= canvasWidth) {
+                                    if (index == 0 || path.isEmpty) {
+                                        path.moveTo(x, y)
+                                    } else {
+                                        path.lineTo(x, y)
+                                    }
+                                }
+                            }
+
+                            drawPath(
+                                path = path,
+                                color = ao5LineColor,
+                                style = Stroke(width = 2f)
+                            )
+                        }
+
+                        // Draw Ao12 line if available
+                        if (movingAverages.containsKey("ao12") && movingAverages["ao12"]!!.size > 1) {
+                            val ao12Values = movingAverages["ao12"]!!.map { it / 1000.0 }
+                            val path = Path()
+                            val pointSpacing = canvasWidth / (ao12Values.size - 1)
+
+                            ao12Values.forEachIndexed { index, time ->
+                                val x = (index * pointSpacing) + offsetX
+                                val normalizedValue = if (valueRange > 0) (time - minValue) / valueRange else 0.5
+                                val y = canvasHeight * (1 - normalizedValue.toFloat())
+
+                                // Only draw points that are within the visible range
+                                if (x >= 0 && x <= canvasWidth) {
+                                    if (index == 0 || path.isEmpty) {
+                                        path.moveTo(x, y)
+                                    } else {
+                                        path.lineTo(x, y)
+                                    }
+                                }
+                            }
+
+                            drawPath(
+                                path = path,
+                                color = ao12LineColor,
+                                style = Stroke(width = 2f)
+                            )
+                        }
+
+                        // Draw yellow points for best times
+                        if (solveTimes.isNotEmpty()) {
+                            // Find the best time
+                            val bestTime = solveTimes.minOrNull() ?: 0.0
+
+                            // Draw a point at each occurrence of the best time
+                            solveTimes.forEachIndexed { index, time ->
+                                if (time == bestTime) {
+                                    val x = (index * (canvasWidth / (solveTimes.size - 1))) + offsetX
+                                    val normalizedValue = if (valueRange > 0) (time - minValue) / valueRange else 0.5
+                                    val y = canvasHeight * (1 - normalizedValue.toFloat())
+
+                                    // Only draw points that are within the visible range
+                                    if (x >= 0 && x <= canvasWidth) {
+                                        // Draw a yellow circle
+                                        drawCircle(
+                                            color = bestPointColor,
+                                            radius = 6f,
+                                            center = Offset(x, y)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

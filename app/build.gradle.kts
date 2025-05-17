@@ -41,6 +41,10 @@ android {
     }
 }
 
+repositories {
+
+}
+
 dependencies {
 
     implementation(libs.androidx.core.ktx)
@@ -79,6 +83,11 @@ dependencies {
     // Jetpack Compose Pager (replaces Accompanist Pager)
     implementation("androidx.compose.foundation:foundation:1.7.8")
     implementation("androidx.compose.foundation:foundation-layout:1.7.8")
+
+    implementation("org.worldcubeassociation.tnoodle:lib-scrambles:0.19.2")
+    implementation("org.worldcubeassociation.tnoodle:lib-svglite:0.19.2")
+    implementation("com.caverock:androidsvg-aar:1.4")
+    implementation("androidx.compose.ui:ui:1.9.0-alpha01")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

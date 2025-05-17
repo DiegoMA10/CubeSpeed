@@ -2,106 +2,45 @@ package com.example.cubespeed.ui.screens.timer
 
 import android.content.Context
 import android.os.PowerManager
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.input.pointer.PointerInputScope
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
-import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.foundation.layout.requiredHeight
-import androidx.compose.foundation.layout.requiredWidth
-import androidx.compose.ui.draw.scale
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.animation.slideInVertically
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Tag
-import androidx.compose.material.icons.filled.UnfoldMore
-import androidx.compose.material.icons.materialIcon
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBarDefaults
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableLongStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.rememberCoroutineScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.BaselineShift
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.TextUnit
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.unit.IntSize
 import com.example.cubespeed.model.CubeType
 import com.example.cubespeed.model.Solve
 import com.example.cubespeed.model.SolveStatus
@@ -109,14 +48,13 @@ import com.example.cubespeed.repository.FirebaseRepository
 import com.example.cubespeed.repository.SolveStatistics
 import com.example.cubespeed.state.AppState
 import com.example.cubespeed.ui.components.FixedSizeAnimatedVisibility
-import com.example.cubespeed.ui.components.CubeTopBar
+import com.example.cubespeed.ui.screens.history.ScrambleVisualization
 import com.example.cubespeed.ui.theme.StatisticsTextStyle
-import com.example.cubespeed.ui.theme.TimerTextColor
 import com.google.firebase.Firebase
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.auth
-import kotlin.math.min
-import androidx.compose.ui.graphics.Brush
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 // Create a single instance of FirebaseRepository to be used throughout the app
 val firebaseRepository = FirebaseRepository()
@@ -235,6 +173,10 @@ fun TimerScreen(
 
                         // Increment stats refresh trigger to update statistics
                         statsRefreshTrigger += 1
+
+                        // Increment history refresh trigger to update history screen
+                        AppState.historyRefreshTrigger += 1
+                        println("[DEBUG_LOG] TimerScreen: Incremented historyRefreshTrigger to ${AppState.historyRefreshTrigger}")
                     }
                 },
                 onSolveUpdated = { updatedSolve ->
@@ -308,18 +250,56 @@ fun Timer(
     onSolveComplete: (Solve) -> Unit = {},
     onSolveUpdated: ((Solve) -> Unit)? = null
 ) {
-    var isRunning by remember { mutableStateOf(false) }
-    var elapsedTime by remember { mutableLongStateOf(0L) }
+    var isRunning by rememberSaveable { mutableStateOf(false) }
+    var elapsedTime by rememberSaveable { mutableLongStateOf(0L) }
     var startTime by remember { mutableLongStateOf(0L) }
-    var showControls by remember { mutableStateOf(false) }
+    var showControls by rememberSaveable { mutableStateOf(false) }
     val showWithDelay = remember { mutableStateOf(true) }
+
+    // State to track if the screen is being pressed
+    var isScreenPressed by remember { mutableStateOf(false) }
+
+    // State to track if the user has moved their finger while holding down
+    var hasMovedWhilePressed by remember { mutableStateOf(false) }
+
+    // State to track if paging is in progress
+    var isPaging by remember { mutableStateOf(false) }
+
+    // State to track the initial position when the user presses down
+    var initialPressX by remember { mutableStateOf(0f) }
+    var initialPressY by remember { mutableStateOf(0f) }
+
+    // Movement threshold in pixels - movements smaller than this won't count
+    val movementThreshold = 10f
+
+    // Horizontal movement threshold - smaller threshold for detecting paging
+    val horizontalPagingThreshold = 3f
+
+    // State to store the previous solve state before pressing
+    var previousElapsedTime by remember { mutableLongStateOf(0L) }
+    var previousIsDNF by remember { mutableStateOf(false) }
+    var previousHasAddedTwoSeconds by remember { mutableStateOf(false) }
+    var previousCompletedSolve by remember { mutableStateOf<Solve?>(null) }
+    var previousShowControls by remember { mutableStateOf(false) }
+    var previousScramble by remember { mutableStateOf("") }
+    var previousSelectedCubeType by remember { mutableStateOf(selectedCubeType) }
+    var previousSelectedTag by remember { mutableStateOf(selectedTag) }
+    var previousCommentText by remember { mutableStateOf("") }
+
+    // State to track the cube type when a solve starts
+    var solveCubeType by remember { mutableStateOf(selectedCubeType) }
 
     // Cooldown state to prevent spam clicking
     var isInCooldown by remember { mutableStateOf(false) }
 
     // State for comment dialog
-    var showCommentDialog by remember { mutableStateOf(false) }
-    var commentText by remember { mutableStateOf("") }
+    var showCommentDialog by rememberSaveable { mutableStateOf(false) }
+    var commentText by rememberSaveable { mutableStateOf(AppState.commentText) }
+
+    // Observe changes to AppState.commentText and update local state
+    LaunchedEffect(AppState.commentText) {
+        commentText = AppState.commentText
+    }
 
     // Coroutine scope for async operations
     val timerCoroutineScope = rememberCoroutineScope()
@@ -329,11 +309,42 @@ fun Timer(
     // Use the file-level calculateFontSize function
 
     var timerColor by remember { mutableStateOf(Color.White) }
-    var isDNF by remember { mutableStateOf(false) }
-    var originalTime by remember { mutableLongStateOf(0L) }
-    var hasAddedTwoSeconds by remember { mutableStateOf(false) }
-    var scramble by remember { mutableStateOf(generateScramble()) }
+    var isDNF by rememberSaveable { mutableStateOf(false) }
+    var originalTime by rememberSaveable { mutableLongStateOf(0L) }
+    var hasAddedTwoSeconds by rememberSaveable { mutableStateOf(false) }
+    var scramble by rememberSaveable { mutableStateOf("") }
     var statsRefreshTrigger by remember { mutableLongStateOf(0L) }
+
+    // State to track if a scramble is being generated
+    var isScrambleLoading by remember { mutableStateOf(false) }
+
+    // Debug log when isScrambleLoading changes
+    LaunchedEffect(isScrambleLoading) {
+        println("[DEBUG_LOG] isScrambleLoading changed to: $isScrambleLoading")
+    }
+
+    // Generate initial scramble when component is first created
+    LaunchedEffect(Unit) {
+        if (scramble.isEmpty()) {
+            println("[DEBUG_LOG] Generating initial scramble")
+            isScrambleLoading = true
+            // Use a coroutine to avoid blocking the UI thread
+            timerCoroutineScope.launch {
+                try {
+                    val newScramble = generateScramble(CubeType.fromDisplayName(selectedCubeType))
+                    println("[DEBUG_LOG] Initial scramble generated: ${newScramble.take(20)}...")
+                    scramble = newScramble
+                } catch (e: Exception) {
+                    println("[DEBUG_LOG] Error generating initial scramble: ${e.message}")
+                    // Generate a simple fallback scramble if the real one fails
+                    scramble = "R U R' U'"
+                } finally {
+                    isScrambleLoading = false
+                    println("[DEBUG_LOG] Finished initial scramble generation")
+                }
+            }
+        }
+    }
 
     // Animated scale factor for the timer
     val timerScale by animateFloatAsState(
@@ -346,7 +357,7 @@ fun Timer(
     )
 
     // State to track if we have a completed solve that needs to be saved
-    var completedSolve by remember { mutableStateOf<Solve?>(null) }
+    var completedSolve by rememberSaveable { mutableStateOf<Solve?>(null) }
 
     // Function to reset timer state to initial values
     fun resetTimerState(
@@ -364,23 +375,46 @@ fun Timer(
         }
 
         if (generateNewScramble) {
-            scramble = generateScramble()
+            println("[DEBUG_LOG] Starting scramble generation in resetTimerState")
+            isScrambleLoading = true
+            timerCoroutineScope.launch {
+                // Generate the scramble in a coroutine to avoid blocking the UI
+                println("[DEBUG_LOG] Generating scramble for cube type: $selectedCubeType")
+                try {
+                    val newScramble = generateScramble(CubeType.fromDisplayName(selectedCubeType))
+                    println("[DEBUG_LOG] Scramble generated: ${newScramble.take(20)}...")
+                    scramble = newScramble
+                } catch (e: Exception) {
+                    println("[DEBUG_LOG] Error generating scramble in resetTimerState: ${e.message}")
+                    // Generate a simple fallback scramble if the real one fails
+                    scramble = "R U R' U'"
+                } finally {
+                    isScrambleLoading = false
+                    println("[DEBUG_LOG] Finished scramble generation in resetTimerState")
+                }
+            }
         }
     }
 
     // Function to set cooldown state and clear it after a delay
     fun setCooldown(durationMillis: Long = 1000) {
+        println("[DEBUG_LOG] Setting cooldown for $durationMillis ms")
         isInCooldown = true
 
         // Launch a coroutine to clear the cooldown after a delay
         timerCoroutineScope.launch {
             delay(durationMillis)
             isInCooldown = false
+            println("[DEBUG_LOG] Cooldown ended after $durationMillis ms")
         }
     }
 
     // Function to start the timer
     fun startTimer(resetExternalTrigger: Boolean = false) {
+        // Capture the current cube type when the timer starts
+        solveCubeType = selectedCubeType
+        println("[DEBUG_LOG] Timer started with cube type: $solveCubeType")
+
         isRunning = true
         onTimerRunningChange(true)
 
@@ -392,6 +426,9 @@ fun Timer(
 
     // Track if this is the first time the app is launched
     var isFirstLaunch = remember { mutableStateOf(true) }
+
+    // Track if this is the first cube type change
+    var isFirstCubeTypeChange = remember { mutableStateOf(true) }
 
     LaunchedEffect(isRunning) {
         if (isFirstLaunch.value) {
@@ -423,7 +460,7 @@ fun Timer(
                 onTimerRunningChange(false)
 
                 // Set cooldown to prevent immediate restart
-                setCooldown(1000) // 200ms cooldown for external trigger
+
             } else {
                 if (elapsedTime > 0) {
                     // Reset if already stopped
@@ -447,6 +484,11 @@ fun Timer(
     // Timer effect
     val timerPrimaryColor = MaterialTheme.colorScheme.onPrimary
 
+    // Update timer color when theme changes
+    LaunchedEffect(timerPrimaryColor) {
+        timerColor = timerPrimaryColor
+    }
+
     LaunchedEffect(isRunning) {
         // Notify parent about timer state change
         onTimerRunningChange(isRunning)
@@ -464,17 +506,66 @@ fun Timer(
         }
     }
 
-     LaunchedEffect(isRunning) {
-        timerColor = timerPrimaryColor
-    }
-
-
 
     // Effect to reset timer when cube type changes
     LaunchedEffect(selectedCubeType) {
-        if (!isRunning) {
+        println("[DEBUG_LOG] Cube type changed to: $selectedCubeType")
+
+        if (isFirstCubeTypeChange.value) {
+            // Skip generating a new scramble on the first launch
+            // because we already have one from the initial state
+            println("[DEBUG_LOG] First cube type change, skipping scramble generation")
+            isFirstCubeTypeChange.value = false
+        } else if (!isRunning) {
             // Reset timer state when cube type changes
+            println("[DEBUG_LOG] Timer not running, calling resetTimerState")
             resetTimerState(resetCompletedSolve = true, generateNewScramble = true)
+
+            // Reset all previous state variables to prevent bugs when paging after changing cube types
+            previousElapsedTime = 0L
+            previousIsDNF = false
+            previousHasAddedTwoSeconds = false
+            previousCompletedSolve = null
+            previousShowControls = false
+            previousScramble = ""
+            previousSelectedCubeType = selectedCubeType
+            previousSelectedTag = selectedTag
+            previousCommentText = ""
+            println("[DEBUG_LOG] Reset all previous state variables after cube type change")
+        } else {
+            // Even if timer is running, update the scramble for the next solve
+            println("[DEBUG_LOG] Timer running, generating scramble directly")
+
+            // Reset all previous state variables to prevent bugs when paging after changing cube types
+            // Even when the timer is running, we need to reset these to prevent issues
+            previousElapsedTime = 0L
+            previousIsDNF = false
+            previousHasAddedTwoSeconds = false
+            previousCompletedSolve = null
+            previousShowControls = false
+            previousScramble = ""
+            previousSelectedCubeType = selectedCubeType
+            previousSelectedTag = selectedTag
+            previousCommentText = ""
+            println("[DEBUG_LOG] Reset all previous state variables after cube type change (timer running)")
+
+            isScrambleLoading = true
+            // Use a coroutine to avoid blocking the UI
+            timerCoroutineScope.launch {
+                println("[DEBUG_LOG] Generating scramble for cube type: $selectedCubeType in LaunchedEffect")
+                try {
+                    val newScramble = generateScramble(CubeType.fromDisplayName(selectedCubeType))
+                    println("[DEBUG_LOG] Scramble generated in LaunchedEffect: ${newScramble.take(20)}...")
+                    scramble = newScramble
+                } catch (e: Exception) {
+                    println("[DEBUG_LOG] Error generating scramble in LaunchedEffect: ${e.message}")
+                    // Generate a simple fallback scramble if the real one fails
+                    scramble = "R U R' U'"
+                } finally {
+                    isScrambleLoading = false
+                    println("[DEBUG_LOG] Finished scramble generation in LaunchedEffect")
+                }
+            }
         }
     }
 
@@ -507,55 +598,229 @@ fun Timer(
         Box(
             modifier = Modifier
                 .matchParentSize()
-                .pointerInput(isRunning, isInCooldown) { // Add isInCooldown as a key to recompose when it changes
-                    detectTapGestures { offset ->
-                        // Ignore all tap gestures when in cooldown
-                        if (isInCooldown) {
-                            return@detectTapGestures
-                        }
+                .pointerInput(Unit) { // Using Unit as key to prevent reinitialization during operations
+                    awaitPointerEventScope {
+                        while (true) {
+                            // Wait for at least one pointer event
+                            val event = awaitPointerEvent()
 
-                        // Solo cuando esté parado lanzamos trigger
-                        if (!isRunning) { // We already checked for cooldown above
-                            // Reset timer state and completedSolve
-                            resetTimerState(resetCompletedSolve = true)
-
-                            // Start timer and reset external trigger
-                            startTimer(resetExternalTrigger = true)
-                        } else {
-                            // When running, click to stop
-                            isRunning = false
-                            showControls = true
-                            onTimerRunningChange(false)
-
-                            // Set cooldown to prevent immediate restart
-                            setCooldown(800) // 1000ms cooldown for tap gesture
-
-                            // Create a Solve object when the timer stops
-                            val solveStatus =
-                                if (isDNF) SolveStatus.DNF else if (hasAddedTwoSeconds) SolveStatus.PLUS2 else SolveStatus.OK
-
-                            // Only create a new solve if we don't already have one
-                            if (completedSolve == null) {
-                                completedSolve = Solve(
-                                    id = "",  // Empty ID for new solves
-                                    cube = CubeType.fromDisplayName(selectedCubeType),
-                                    tagId = selectedTag,
-                                    timestamp = Timestamp.now(),
-                                    time = elapsedTime,
-                                    scramble = scramble,
-                                    status = solveStatus,
-                                    comments = ""
-                                )
-
-                                // Save the solve immediately
-                                onSolveComplete(completedSolve!!)
+                            // Ignore all events when in cooldown
+                            if (isInCooldown) {
+                                println("[DEBUG_LOG] IGNORADO POR COOLDOWN - Event type: ${event.type}")
+                                continue
                             }
 
-                            // Increment stats refresh trigger to update statistics
-                            statsRefreshTrigger += 1
+                            when (event.type) {
+                                PointerEventType.Press -> {
+                                    // Check if this is a multi-touch event (more than one pointer)
+                                    if (event.changes.size > 1) {
+                                        // Ignore multi-touch events to prevent timer getting stuck
+                                        println("[DEBUG_LOG] Ignoring multi-touch event")
+                                        // Reset all flags to prevent the timer from getting stuck
+                                        isPaging = false
+                                        isScreenPressed = false
+                                        hasMovedWhilePressed = false
+                                        println("[DEBUG_LOG] Reset flags due to multi-touch: isPaging=$isPaging, isScreenPressed=$isScreenPressed")
+                                        continue
+                                    }
 
-                            // Generate a new scramble for the next solve
-                            scramble = generateScramble()
+                                    if (!isRunning) {
+
+                                        // Store the previous solve state before resetting
+                                        previousElapsedTime = elapsedTime
+                                        previousIsDNF = isDNF
+                                        previousHasAddedTwoSeconds = hasAddedTwoSeconds
+                                        previousCompletedSolve = completedSolve
+                                        previousShowControls = showControls
+                                        previousScramble = scramble
+                                        previousSelectedCubeType = selectedCubeType
+                                        previousSelectedTag = selectedTag
+                                        previousCommentText = commentText
+                                        println(
+                                            "[DEBUG_LOG] Stored previous state: cube=$selectedCubeType, tag=$selectedTag, comment=$commentText, scramble=${
+                                                scramble.take(
+                                                    20
+                                                )
+                                            }..."
+                                        )
+
+                                        // Reset the movement tracking flag
+                                        hasMovedWhilePressed = false
+
+                                        // Store the initial position
+                                        val position = event.changes.first().position
+                                        initialPressX = position.x
+                                        initialPressY = position.y
+
+                                        // When timer is not running and screen is pressed:
+                                        // 1. Set isScreenPressed to true
+                                        // 2. Reset timer to 0.00 but don't start it
+                                        // 3. Keep the control buttons visible (don't call resetTimerState)
+                                        isScreenPressed = true
+
+                                        // Manually reset state variables without hiding controls
+                                        elapsedTime = 0L // Ensure timer shows 0.00
+                                        isDNF = false
+                                        hasAddedTwoSeconds = false
+                                        originalTime = 0L
+
+                                        // Only reset completedSolve, but keep showControls as is
+                                        if (completedSolve != null) {
+                                            completedSolve = null
+                                        }
+                                    } else {
+
+                                        // When running, stop on first touch (same as before)
+                                        isRunning = false
+                                        showControls = true
+                                        onTimerRunningChange(false)
+
+                                        // Set cooldown to prevent immediate restart
+                                        setCooldown(1000) // 1000ms cooldown for touch event
+
+                                        // Create a Solve object when the timer stops
+                                        val solveStatus =
+                                            if (isDNF) SolveStatus.DNF else if (hasAddedTwoSeconds) SolveStatus.PLUS2 else SolveStatus.OK
+
+                                        // Only create a new solve if we don't already have one
+                                        if (completedSolve == null) {
+                                            // Always use the current top bar values for cube type and tag
+                                            // Always use the comment from AppState
+                                            val cubeTypeToUse = AppState.selectedCubeType
+                                            val tagToUse = AppState.selectedTag
+                                            val scrambleToUse = if (isPaging) previousScramble else scramble
+                                            val commentsToUse = AppState.commentText
+
+                                            val cubeType = CubeType.fromDisplayName(cubeTypeToUse)
+                                            println("[DEBUG_LOG] Creating solve with cube type: ${cubeType.name} from AppState.selectedCubeType: $cubeTypeToUse")
+                                            println("[DEBUG_LOG] Using tag: $tagToUse, comments: $commentsToUse")
+
+                                            completedSolve = Solve(
+                                                id = "",  // Empty ID for new solves
+                                                cube = cubeType,
+                                                tagId = tagToUse,
+                                                timestamp = Timestamp.now(),
+                                                time = elapsedTime,
+                                                scramble = scrambleToUse,
+                                                status = solveStatus,
+                                                comments = commentsToUse
+                                            )
+
+                                            // Save the solve immediately
+                                            onSolveComplete(completedSolve!!)
+
+                                            // Reset comment text for next solve
+                                            AppState.commentText = ""
+                                            commentText = ""
+                                            println("[DEBUG_LOG] Reset comment text for next solve")
+                                        }
+
+                                        // Increment stats refresh trigger to update statistics
+                                        statsRefreshTrigger += 1
+
+                                        // Generate a new scramble for the next solve
+                                        // Use the cube type from when the solve started, not the currently selected one
+                                        isScrambleLoading = true
+                                        timerCoroutineScope.launch {
+                                            println("[DEBUG_LOG] Generating scramble after solve completion for cube type: $solveCubeType")
+                                            try {
+                                                val newScramble =
+                                                    generateScramble(CubeType.fromDisplayName(solveCubeType))
+                                                println("[DEBUG_LOG] Scramble generated after solve: ${newScramble.take(20)}...")
+                                                scramble = newScramble
+                                            } catch (e: Exception) {
+                                                println("[DEBUG_LOG] Error generating scramble after solve: ${e.message}")
+                                                // Generate a simple fallback scramble if the real one fails
+                                                scramble = "R U R' U'"
+                                            } finally {
+                                                isScrambleLoading = false
+                                                println("[DEBUG_LOG] Finished scramble generation after solve")
+                                            }
+                                        }
+                                    }
+
+                                }
+
+                                PointerEventType.Move -> {
+                                    // If the screen is pressed and the timer is not running,
+                                    // check if the movement exceeds the threshold
+                                    if (isScreenPressed && !isRunning) {
+                                        val position = event.changes.first().position
+                                        val deltaX = kotlin.math.abs(position.x - initialPressX)
+                                        val deltaY = kotlin.math.abs(position.y - initialPressY)
+
+                                        // Check for horizontal movement (likely paging)
+                                        if (deltaX > horizontalPagingThreshold && deltaX > deltaY * 1.5f) {
+                                            // This is likely a paging gesture (horizontal swipe)
+                                            isPaging = true
+                                            hasMovedWhilePressed = true
+
+                                            // Restore previous state immediately when paging starts
+                                            elapsedTime = previousElapsedTime
+                                            isDNF = previousIsDNF
+                                            hasAddedTwoSeconds = previousHasAddedTwoSeconds
+                                            completedSolve = previousCompletedSolve
+                                            showControls = previousShowControls
+                                            scramble = previousScramble
+                                            // Don't update the actual selectedCubeType/selectedTag variables as they are parameters
+                                            // but make sure they're preserved in the completedSolve if it's created
+                                            commentText = previousCommentText
+
+                                            println("[DEBUG_LOG] Paging detected: horizontal movement $deltaX pixels (threshold: $horizontalPagingThreshold)")
+                                            println(
+                                                "[DEBUG_LOG] Restored previous state: cube=${previousSelectedCubeType}, tag=${previousSelectedTag}, comment=${previousCommentText}, scramble=${
+                                                    previousScramble.take(
+                                                        20
+                                                    )
+                                                }..."
+                                            )
+                                        }
+                                    }
+                                }
+
+                                PointerEventType.Release -> {
+                                    println("[DEBUG_LOG] Release: isPaging=$isPaging, isScreenPressed=$isScreenPressed, isRunning=$isRunning")
+
+                                    if (isScreenPressed && !isRunning) {
+                                        // Set isScreenPressed to false
+                                        isScreenPressed = false
+
+                                        if (isPaging) {
+                                            // If paging was detected, don't start the timer
+                                            println("[DEBUG_LOG] Release during paging - ignoring timer start")
+                                            // Este bloque NO inicia el timer, ni hace más...
+                                        } else {
+                                            // Start the timer if paging was not detected
+                                            // This should always happen when the user holds and releases their finger
+                                            // without paging, even when there's no previous timer
+                                            println("[DEBUG_LOG] Starting timer after release")
+                                            startTimer(resetExternalTrigger = true)
+                                            setCooldown(80)
+                                        }
+                                    }
+
+                                    // SIEMPRE, pase lo que pase, fuera del if:
+                                    println("[DEBUG_LOG] Resetting flags: isPaging=$isPaging, hasMovedWhilePressed=$hasMovedWhilePressed")
+                                    isPaging = false
+                                    hasMovedWhilePressed = false
+                                    isScreenPressed = false
+                                }
+
+                                else -> {
+                                    // Check if this is a Cancel event by name
+                                    if (event.type.toString() == "Cancel") {
+                                        println("[DEBUG_LOG] Detected Cancel event: isPaging=$isPaging, isScreenPressed=$isScreenPressed, isRunning=$isRunning")
+
+                                        // Always reset all flags on Cancel to prevent the timer from getting stuck
+                                        isPaging = false
+                                        isScreenPressed = false
+                                        hasMovedWhilePressed = false
+                                        println("[DEBUG_LOG] Reset flags due to Cancel event")
+                                    } else {
+                                        println("[DEBUG_LOG] Ignoring other event type: ${event.type}")
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -566,11 +831,11 @@ fun Timer(
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
 
-        ) {
+            ) {
             // a) Scramble + estadísticas solo si NO está corriendo
             FixedSizeAnimatedVisibility(
                 visible = showWithDelay.value,
-
+                modifier = Modifier.offset(y = (-24).dp),
                 enter = slideInVertically(
                     initialOffsetY = { -it + 175 },
                     animationSpec = tween(durationMillis = 500)
@@ -579,12 +844,31 @@ fun Timer(
             ) {
                 ScrambleBar(
                     initialScramble = scramble, // Pass the Timer's scramble as initialScramble
+                    isLoading = isScrambleLoading, // Pass the loading state
                     onEdit = { /* Edit logic */ },
                     onShuffle = {
                         // Only update the scramble if not in cooldown
                         if (!isInCooldown) {
                             // Update the Timer's scramble when the ScrambleBar's scramble changes
-                            scramble = generateScramble()
+                            println("[DEBUG_LOG] Shuffle button clicked, generating new scramble")
+                            isScrambleLoading = true
+                            timerCoroutineScope.launch {
+                                println("[DEBUG_LOG] Generating scramble for cube type: $selectedCubeType in onShuffle")
+                                try {
+                                    val newScramble = generateScramble(CubeType.fromDisplayName(selectedCubeType))
+                                    println("[DEBUG_LOG] Scramble generated in onShuffle: ${newScramble.take(20)}...")
+                                    scramble = newScramble
+                                } catch (e: Exception) {
+                                    println("[DEBUG_LOG] Error generating scramble in onShuffle: ${e.message}")
+                                    // Generate a simple fallback scramble if the real one fails
+                                    scramble = "R U R' U'"
+                                } finally {
+                                    isScrambleLoading = false
+                                    println("[DEBUG_LOG] Finished scramble generation in onShuffle")
+                                }
+                            }
+                        } else {
+                            println("[DEBUG_LOG] Shuffle button clicked but ignored due to cooldown")
                         }
                     },
                     onScrambleClick = {
@@ -638,7 +922,7 @@ fun Timer(
                     )
 
                     // Control icons that appear when timer stops
-                    if (showControls && !isRunning && elapsedTime > 0) {
+                    if (showControls && !isRunning && elapsedTime >= 0) {
                         // Get the current screen configuration
                         val configuration = LocalConfiguration.current
                         val screenWidth = configuration.screenWidthDp
@@ -944,7 +1228,9 @@ fun Timer(
                 StatisticsComponent(
                     selectedCubeType = selectedCubeType,
                     selectedTag = selectedTag,
-                    refreshTrigger = statsRefreshTrigger
+                    refreshTrigger = statsRefreshTrigger,
+                    scramble = scramble,
+                    isLoading = isScrambleLoading
                 )
             }
         }
@@ -993,6 +1279,10 @@ fun Timer(
                             }
                         }
 
+                        // Reset AppState.commentText to empty string for next solve
+                        AppState.commentText = ""
+                        println("[DEBUG_LOG] Reset AppState.commentText for next solve")
+
                         // Close the dialog
                         showCommentDialog = false
                     }
@@ -1012,43 +1302,12 @@ fun Timer(
 }
 
 
-
-
-fun generateScramble(): String {
-    val moves = listOf("R", "L", "U", "D", "F", "B")
-    val suffix = listOf("", "'", "2")
-    val scramble = mutableListOf<String>()
-    var lastMove = ""
-    var lastAxis = ""
-
-    // Generate 20 moves
-    repeat(20) {
-        var move: String
-        var axis: String
-
-        // Keep generating until we get a valid move
-        do {
-            move = moves.random()
-            axis = when (move) {
-                "R", "L" -> "RL"
-                "U", "D" -> "UD"
-                "F", "B" -> "FB"
-                else -> ""
-            }
-
-            // Avoid moves on the same axis as the last move (which would cancel out)
-            // Also avoid the same move twice in a row
-        } while (move == lastMove || axis == lastAxis)
-
-        // Update last move and axis
-        lastMove = move
-        lastAxis = axis
-
-        // Add the move with a random suffix
-        scramble.add("$move${suffix.random()}")
-    }
-
-    return scramble.joinToString(" ")
+/**
+ * Generates a scramble for the current cube type.
+ * This function is a wrapper around the ScrambleGenerator class.
+ */
+fun generateScramble(cubeType: CubeType): String {
+    return com.example.cubespeed.model.ScrambleGenerator.getInstance().generateScramble(cubeType)
 }
 
 @Composable
@@ -1083,8 +1342,14 @@ fun StatisticsCard(
             Text("Average: ${formatDouble(stats.average)}", color = MaterialTheme.colorScheme.onPrimary)
             Text("Best: ${formatTime(stats.best)}", color = MaterialTheme.colorScheme.onPrimary)
             Text("Count: ${stats.count}", color = MaterialTheme.colorScheme.onPrimary)
-            Text("Deviation: ${if (stats.deviation > 0) String.format("%.2f", stats.deviation / 1000) else "--"}", color = MaterialTheme.colorScheme.onPrimary)
-            Text("Ao5: ${formatDouble(stats.ao5)}  •  Ao12: ${formatDouble(stats.ao12)}  •  Ao50: ${formatDouble(stats.ao50)}  •  Ao100: ${formatDouble(stats.ao100)}", color = MaterialTheme.colorScheme.onPrimary)
+            Text("Deviation: ${formatDouble(stats.deviation)}", color = MaterialTheme.colorScheme.onPrimary)
+            Text(
+                "Ao5: ${formatDouble(stats.ao5)}  •  Ao12: ${formatDouble(stats.ao12)}  •  Ao50: ${formatDouble(stats.ao50)}  •  Ao100: ${
+                    formatDouble(
+                        stats.ao100
+                    )
+                }", color = MaterialTheme.colorScheme.onPrimary
+            )
         }
     }
 }
@@ -1092,9 +1357,11 @@ fun StatisticsCard(
 @Composable
 fun StatisticsComponent(
     modifier: Modifier = Modifier,
-    selectedCubeType: String = CubeType.CUBE_3X3.displayName,
-    selectedTag: String = "normal",
-    refreshTrigger: Long = 0 // New parameter to trigger refresh
+    selectedCubeType: String,
+    selectedTag: String,
+    refreshTrigger: Long = 0, // New parameter to trigger refresh
+    scramble: String = "", // Parameter for the current scramble
+    isLoading: Boolean = false // Parameter to indicate if scramble is loading
 ) {
     // State for statistics
     var stats by remember { mutableStateOf<SolveStatistics>(SolveStatistics()) }
@@ -1172,16 +1439,21 @@ fun StatisticsComponent(
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .height(110.dp)
+
             .padding(horizontal = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
+        verticalAlignment = Alignment.Bottom,
+        horizontalArrangement = Arrangement.SpaceBetween,
+
+        ) {
         // Left side statistics
         Column(
             modifier = Modifier
-                .padding(4.dp),
-            horizontalAlignment = Alignment.Start
-        ) {
-            Spacer(modifier = Modifier.height(2.dp))
+                .weight(1f),
+            horizontalAlignment = Alignment.Start,
+
+            ) {
+
             Text(
                 text = "Average: ${formatDouble(stats.average)}",
                 style = StatisticsTextStyle,
@@ -1198,19 +1470,43 @@ fun StatisticsComponent(
                 color = MaterialTheme.colorScheme.onPrimary
             )
             Text(
-                text = "Deviation: ${if (stats.deviation > 0) String.format("%.2f", stats.deviation / 1000) else "--"}",
+                text = "Deviation: ${formatDouble(stats.deviation)}",
                 style = StatisticsTextStyle,
                 color = MaterialTheme.colorScheme.onPrimary
             )
         }
 
+        // Center - Scramble visualization or loading indicator
+        Box(
+            modifier = Modifier.weight(1f), // O ponle .height(62.dp) calculando la altura preferida
+            contentAlignment = Alignment.BottomCenter
+        ) {
+            if (isLoading) {
+                // Show loading indicator when scramble is loading
+                CircularProgressIndicator(
+                    modifier = Modifier.size(80.dp),
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
+            } else if (scramble.isNotEmpty()) {
+                // Show scramble visualization when not loading and scramble is not empty
+                ScrambleVisualization(
+                    scramble = scramble,
+                    cubeType = CubeType.fromDisplayName(selectedCubeType),
+                    modifier = Modifier.size(100.dp)
+                )
+            }
+        }
+
+
         // Right side averages
         Column(
             modifier = Modifier
-                .padding(4.dp),
+
+                .weight(1f),
+
             horizontalAlignment = Alignment.End
         ) {
-            Spacer(modifier = Modifier.height(2.dp))
+
             Text(
                 text = "Ao5: ${formatDouble(stats.ao5)}",
                 style = StatisticsTextStyle,
@@ -1239,7 +1535,8 @@ fun StatisticsComponent(
 fun ScrambleBar(
     modifier: Modifier = Modifier,
     contentColor: Color = MaterialTheme.colorScheme.onPrimary,
-    initialScramble: String = generateScramble(), // Use provided initial scramble
+    initialScramble: String = "", // Use provided initial scramble, empty string as default to avoid unnecessary generation
+    isLoading: Boolean = false, // New parameter to indicate if scramble is loading
     onEdit: (current: String) -> Unit = {},
     onShuffle: () -> Unit = {},
     onScrambleClick: () -> Unit = {}
@@ -1249,7 +1546,10 @@ fun ScrambleBar(
 
     // Update internal scramble state when initialScramble changes
     LaunchedEffect(initialScramble) {
-        scramble = initialScramble
+        // Only update if initialScramble is not empty
+        if (initialScramble.isNotEmpty()) {
+            scramble = initialScramble
+        }
     }
 
     Column(
@@ -1261,21 +1561,44 @@ fun ScrambleBar(
             modifier = Modifier.padding(5.dp)
         ) {
 
-            Text(
-                text = scramble,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Medium,
-                color = contentColor,
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null // No ripple effect
-                    ) {
-                        onScrambleClick()
-                    }
-            )
+            if (isLoading) {
+                // Show loading indicator and text when scramble is loading
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    LinearProgressIndicator(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp)
+                    )
+                    Text(
+                        text = "Generando scramble...",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = contentColor,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            } else {
+                // Show the scramble text when not loading
+                Text(
+                    text = scramble,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = contentColor,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null // No ripple effect
+                        ) {
+                            onScrambleClick()
+                        }
+                )
+            }
 
             // Icons at the bottom right
             Row(
@@ -1507,7 +1830,7 @@ fun TagInputDialog(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { 
+                                .clickable {
                                     selectedTag = tag
                                     AppState.selectedTag = tag
                                     onTagConfirmed(tag)
@@ -1588,7 +1911,7 @@ fun TagInputDialog(
             AlertDialog(
                 onDismissRequest = { showDeleteConfirmation = false },
                 title = { Text("Delete Tag") },
-                text = { Text("Are you sure you want to delete the tag \"$tagToDelete\"? This will delete all timers with this tag.") },
+                text = { Text("Are you sure you want to delete the tag \"$tagToDelete\"? This will delete all solves with this tag.") },
                 confirmButton = {
                     TextButton(
                         onClick = {

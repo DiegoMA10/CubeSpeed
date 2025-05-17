@@ -18,8 +18,40 @@ enum class CubeType(val displayName: String, val idName: String = "") {
         }
 
         fun fromDisplayName(displayName: String): CubeType {
-            return values().find { it.displayName == displayName } 
-                ?: throw IllegalArgumentException("No cube type found for display name: $displayName")
+            val normalizedDisplayName = displayName.trim()
+
+            // First try exact match
+            val exactMatch = values().find { it.displayName == normalizedDisplayName }
+            if (exactMatch != null) {
+                println("[DEBUG_LOG] Exact match found for '$normalizedDisplayName': ${exactMatch.name}")
+                return exactMatch
+            }
+
+            // Try case-insensitive match
+            val caseInsensitiveMatch = values().find { 
+                it.displayName.equals(normalizedDisplayName, ignoreCase = true)
+            }
+            if (caseInsensitiveMatch != null) {
+                println("[DEBUG_LOG] Case-insensitive match found for '$normalizedDisplayName': ${caseInsensitiveMatch.name}")
+                return caseInsensitiveMatch
+            }
+
+            // If no exact match, try to match by the cube size/type part
+            // For example, if displayName is "6x6", it should match "6x6 Cube"
+            val cubeTypeMatch = values().find { cubeType ->
+                val cubeTypePart = cubeType.displayName.split(" ")[0].trim().lowercase()
+                val displayNamePart = normalizedDisplayName.split(" ")[0].trim().lowercase()
+
+                displayNamePart.contains(cubeTypePart) || cubeTypePart.contains(displayNamePart)
+            }
+
+            if (cubeTypeMatch != null) {
+                println("[DEBUG_LOG] Partial match found for '$normalizedDisplayName': ${cubeTypeMatch.name}")
+                return cubeTypeMatch
+            }
+
+            println("[DEBUG_LOG] No match found for '$normalizedDisplayName', defaulting to CUBE_3X3")
+            return CUBE_3X3 // Default to 3x3 if no match found
         }
     }
 }

@@ -1,19 +1,19 @@
 package com.example.cubespeed.repository
 
+import android.util.Log
 import com.example.cubespeed.model.CubeType
 import com.example.cubespeed.model.Solve
 import com.example.cubespeed.model.SolveStatus
+import com.example.cubespeed.ui.screens.history.SortOrder
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.auth
-import com.google.firebase.firestore.AggregateSource
-import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.*
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.functions.ktx.functions
 import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.tasks.await
-import android.util.Log
 
 /**
  * Data class to hold statistics for a specific cube type and tag
@@ -38,42 +38,62 @@ class FirebaseRepository {
     // Default tags that are always available
     private val defaultTags = listOf("normal")
 
+    // Maximum batch size for Firestore batch operations
+    private val MAX_BATCH_SIZE = 500
+
     /**
      * Saves a solve to Firebase Firestore
-     * Structure: users/{uid}/timers/{solveId}
+     * Structure: users/{uid}/solves/{solveId}
      * @return The ID of the saved solve, or an empty string if the save failed
      */
     suspend fun saveSolve(solve: Solve): String {
         val currentUser = auth.currentUser ?: return ""
 
         try {
-            // Create a map with the solve data
-            val solveData = hashMapOf(
-                "cube" to solve.cube.name,
-                "tagId" to solve.tagId,
-                "timestamp" to solve.timestamp,
-                "duration" to solve.time,
-                "status" to solve.status.name,
-                "scramble" to solve.scramble,
-                "comment" to solve.comments
-            )
-
             // Save to Firestore
             val solveRef = if (solve.id.isNotEmpty()) {
-                // Update existing solve
+                // Update existing solve - don't include timestamp to preserve the original
+                val solveData = mutableMapOf<String, Any>(
+                    "cube" to solve.cube.name,
+                    "tagId" to solve.tagId,
+                    "duration" to solve.time,
+                    "status" to solve.status.name,
+                    "scramble" to solve.scramble,
+                    "comment" to solve.comments
+                )
+
                 firestore.collection("users")
                     .document(currentUser.uid)
-                    .collection("timers")
+                    .collection("solves")
+                    .document(solve.id)
+                    .update(solveData)
+                    .await()
+
+                firestore.collection("users")
+                    .document(currentUser.uid)
+                    .collection("solves")
                     .document(solve.id)
             } else {
-                // Create new solve
-                firestore.collection("users")
-                    .document(currentUser.uid)
-                    .collection("timers")
-                    .document()
-            }
+                // Create new solve - include timestamp for new solves
+                val solveData = hashMapOf(
+                    "cube" to solve.cube.name,
+                    "tagId" to solve.tagId,
+                    "timestamp" to FieldValue.serverTimestamp(),
+                    "duration" to solve.time,
+                    "status" to solve.status.name,
+                    "scramble" to solve.scramble,
+                    "comment" to solve.comments
+                )
 
-            solveRef.set(solveData).await()
+                // Create new solve
+                val newSolveRef = firestore.collection("users")
+                    .document(currentUser.uid)
+                    .collection("solves")
+                    .document()
+
+                newSolveRef.set(solveData).await()
+                newSolveRef
+            }
 
             // Update stats
             updateStats(currentUser.uid, solve.cube, solve.tagId)
@@ -88,14 +108,14 @@ class FirebaseRepository {
 
     /**
      * Updates the statistics for a specific cube and tag
-     * 
+     *
      * Note: Statistics are calculated by Firebase Functions written in Node.js.
      * The functions are triggered automatically when a solve is added, updated, or deleted.
      * See the 'functions/index.js' file for the implementation.
-     * 
+     *
      * The app observes the stats document in Firestore for real-time updates
      * using snapshot listeners in the UI components.
-     * 
+     *
      * This method is a no-op as the statistics are calculated automatically.
      */
     private suspend fun updateStats(userId: String, cubeType: CubeType, tagId: String) {
@@ -105,7 +125,7 @@ class FirebaseRepository {
     /**
      * Gets statistics for a specific cube type and tag
      * Returns a SolveStatistics object with the statistics
-     * 
+     *
      * Note: This method simply fetches the current value from Firestore.
      * For real-time updates, UI components should set up their own snapshot listeners
      * on the stats document, as demonstrated in the StatisticsComponent.
@@ -216,7 +236,7 @@ class FirebaseRepository {
             // Get the solve to determine its cube type and tag for stats update
             val solveRef = firestore.collection("users")
                 .document(currentUser.uid)
-                .collection("timers")
+                .collection("solves")
                 .document(solveId)
 
             val solveDoc = solveRef.get().await()
@@ -273,7 +293,7 @@ class FirebaseRepository {
         return try {
             val query = firestore.collection("users")
                 .document(currentUser.uid)
-                .collection("timers")
+                .collection("solves")
                 .whereEqualTo("cube", cubeType.name)
                 .whereEqualTo("tagId", tagId)
 
@@ -286,7 +306,240 @@ class FirebaseRepository {
     }
 
     /**
-     * Removes a tag for the current user and all timers and stats associated with it
+     * Sets up a real-time listener for solves with pagination support
+     *
+     * @param onSolvesUpdate Callback that will be called whenever the solves list changes
+     * @param pageSize Number of solves to load per page
+     * @param lastVisibleDocument The last document from the previous page, or null for the first page
+     * @param selectedCubeType The cube type to filter by, or "All" for all cube types
+     * @param selectedTag The tag to filter by, or "All" for all tags
+     * @param sortOrder The order to sort the solves by
+     * @return A ListenerRegistration that can be used to remove the listener
+     */
+    fun listenForSolves(
+        onSolvesUpdate: (List<Solve>, DocumentSnapshot?, Boolean) -> Unit,
+        pageSize: Long = 100,
+        lastVisibleDocument: DocumentSnapshot? = null,
+        selectedCubeType: String = "All",
+        selectedTag: String = "All",
+        sortOrder: SortOrder = SortOrder.DATE_DESC
+    ): ListenerRegistration? {
+        val currentUser = auth.currentUser ?: return null
+
+        try {
+            // Create base query
+            val solveCollection = firestore.collection("users")
+                .document(currentUser.uid)
+                .collection("solves")
+
+            // Start with a query on the collection
+            var query: Query = solveCollection
+
+            // Apply sort order based on the provided parameter
+            query = when (sortOrder) {
+                SortOrder.DATE_DESC -> query.orderBy("timestamp", Query.Direction.DESCENDING)
+                SortOrder.DATE_ASC -> query.orderBy("timestamp", Query.Direction.ASCENDING)
+                SortOrder.TIME_ASC -> query.orderBy("duration", Query.Direction.ASCENDING)
+                SortOrder.TIME_DESC -> query.orderBy("duration", Query.Direction.DESCENDING)
+            }
+
+            // Apply filters directly in the Firestore query if specific values are selected
+            if (selectedCubeType != "All") {
+                // Convert display name to enum name
+                val cubeTypeEnum = CubeType.fromDisplayName(selectedCubeType)
+                query = query.whereEqualTo("cube", cubeTypeEnum.name)
+            }
+
+            if (selectedTag != "All") {
+                query = query.whereEqualTo("tagId", selectedTag)
+            }
+
+            // Apply limit after filters
+            // Query for one more document than the page size to determine if there are more solves
+            query = query.limit(pageSize + 1)
+
+            // If not the first page, start after the last document
+            if (lastVisibleDocument != null) {
+                query = query.startAfter(lastVisibleDocument)
+            }
+
+            // Add the snapshot listener
+            return query.addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.e("FirebaseRepository", "Error listening for solves: ${error.message}", error)
+                    return@addSnapshotListener
+                }
+
+                if (snapshot == null) {
+                    Log.w("FirebaseRepository", "Snapshot is null")
+                    return@addSnapshotListener
+                }
+
+                // Convert documents to Solve objects
+                val solves = snapshot.documents.mapNotNull { doc ->
+                    val id = doc.id
+                    val cubeTypeStr = doc.getString("cube") ?: return@mapNotNull null
+                    val cubeType = try {
+                        CubeType.valueOf(cubeTypeStr)
+                    } catch (e: Exception) {
+                        CubeType.CUBE_3X3
+                    }
+                    val tagId = doc.getString("tagId") ?: "normal"
+                    val timestamp = doc.getTimestamp("timestamp") ?: Timestamp.now()
+                    val time = doc.getLong("duration") ?: 0L
+                    val scramble = doc.getString("scramble") ?: ""
+                    val statusStr = doc.getString("status") ?: SolveStatus.OK.name
+                    val status = try {
+                        SolveStatus.valueOf(statusStr)
+                    } catch (e: Exception) {
+                        SolveStatus.OK
+                    }
+                    val comments = doc.getString("comment") ?: ""
+
+                    Solve(
+                        id = id,
+                        cube = cubeType,
+                        tagId = tagId,
+                        timestamp = timestamp,
+                        time = time,
+                        scramble = scramble,
+                        status = status,
+                        comments = comments
+                    )
+                }
+
+                // Since we're filtering in the query, we don't need to filter again
+                // But we'll keep this as a safety check in case the query filters don't work as expected
+                val filteredSolves = solves
+
+                // Check if we got more solves than the requested page size
+                val hasMoreData = filteredSolves.size > pageSize.toInt()
+
+                // Limit the solves to the requested page size
+                val solvesToReturn = if (hasMoreData) {
+                    filteredSolves.take(pageSize.toInt())
+                } else {
+                    filteredSolves
+                }
+
+                // Get the last visible document for pagination
+                // Use the last document in the returned solves, not the extra one we queried
+                val lastVisible = if (solvesToReturn.isNotEmpty()) {
+                    // Find the document that corresponds to the last solve in solvesToReturn
+                    val lastSolveId = solvesToReturn.last().id
+                    snapshot.documents.find { it.id == lastSolveId }
+                } else {
+                    null
+                }
+
+                // Call the callback with the filtered solves, last visible document, and whether there are more solves
+                onSolvesUpdate(solvesToReturn, lastVisible, hasMoreData)
+            }
+        } catch (e: Exception) {
+            Log.e("FirebaseRepository", "Error setting up solves listener: ${e.message}", e)
+            return null
+        }
+    }
+
+    /**
+     * Deletes multiple solves at once using Firestore batched writes
+     * @param solveIds List of solve IDs to delete
+     * @return The number of successfully deleted solves, or -1 if an error occurred
+     */
+    suspend fun deleteMultipleSolves(solveIds: List<String>): Int {
+        if (solveIds.isEmpty()) return 0
+
+        val currentUser = auth.currentUser ?: return -1
+
+        try {
+            // Group solves by cube type and tag for stats updates
+            val solvesToDelete = mutableMapOf<Pair<CubeType, String>, MutableList<String>>()
+
+            // First, get information about each solve to determine cube type and tag
+            for (solveId in solveIds) {
+                try {
+                    val solveRef = firestore.collection("users")
+                        .document(currentUser.uid)
+                        .collection("solves")
+                        .document(solveId)
+
+                    val solveDoc = solveRef.get().await()
+
+                    if (solveDoc.exists()) {
+                        val cubeTypeStr = solveDoc.getString("cube") ?: continue
+                        val tagId = solveDoc.getString("tagId") ?: continue
+
+                        val cubeType = try {
+                            CubeType.valueOf(cubeTypeStr)
+                        } catch (e: Exception) {
+                            continue
+                        }
+
+                        val key = Pair(cubeType, tagId)
+                        if (!solvesToDelete.containsKey(key)) {
+                            solvesToDelete[key] = mutableListOf()
+                        }
+                        solvesToDelete[key]?.add(solveId)
+                    }
+                } catch (e: Exception) {
+                    Log.e("FirebaseRepository", "Error getting solve $solveId: ${e.message}", e)
+                }
+            }
+
+            // Delete solves in batches
+            var deletedCount = 0
+
+            for ((cubeTypeTagPair, ids) in solvesToDelete) {
+                // Process in batches of MAX_BATCH_SIZE
+                ids.chunked(MAX_BATCH_SIZE).forEach { batchIds ->
+                    val batch = firestore.batch()
+
+                    for (id in batchIds) {
+                        val solveRef = firestore.collection("users")
+                            .document(currentUser.uid)
+                            .collection("solves")
+                            .document(id)
+
+                        batch.delete(solveRef)
+                    }
+
+                    // Commit the batch
+                    batch.commit().await()
+                    deletedCount += batchIds.size
+                }
+
+                // Update stats for this cube type and tag
+                val (cubeType, tagId) = cubeTypeTagPair
+                updateStats(currentUser.uid, cubeType, tagId)
+
+                // Check if this was the last solve for this cube type and tag
+                val remainingSolves = countSolvesByCubeTypeAndTag(cubeType, tagId)
+                if (remainingSolves == 0) {
+                    // If no solves remain, delete the stats document
+                    val statsDocId = "${cubeType.name}_${tagId}"
+                    val statsRef = firestore.collection("users")
+                        .document(currentUser.uid)
+                        .collection("stats")
+                        .document(statsDocId)
+
+                    // Check if the stats document exists before deleting
+                    val statsDoc = statsRef.get().await()
+                    if (statsDoc.exists()) {
+                        Log.d("FirebaseRepository", "Deleting stats document: $statsDocId")
+                        statsRef.delete().await()
+                    }
+                }
+            }
+
+            return deletedCount
+        } catch (e: Exception) {
+            Log.e("FirebaseRepository", "Error deleting multiple solves: ${e.message}", e)
+            return -1
+        }
+    }
+
+    /**
+     * Removes a tag for the current user and all solves and stats associated with it
      * Returns true if successful, false otherwise
      * Note: Default tags cannot be removed
      */
@@ -308,22 +561,22 @@ class FirebaseRepository {
 
             val querySnapshot = tagsRef.get().await()
 
-            // If tag found, delete it and all associated timers and stats
+            // If tag found, delete it and all associated solves and stats
             if (!querySnapshot.isEmpty) {
-                // First, find all timers with this tag
-                val timersRef = firestore.collection("users")
+                // First, find all solves with this tag
+                val solvesRef = firestore.collection("users")
                     .document(currentUser.uid)
-                    .collection("timers")
+                    .collection("solves")
                     .whereEqualTo("tagId", tagName)
 
-                val timersSnapshot = timersRef.get().await()
-                Log.d("FirebaseRepository", "Deleting ${timersSnapshot.size()} solves with tag: $tagName")
+                val solvesSnapshot = solvesRef.get().await()
+                Log.d("FirebaseRepository", "Deleting ${solvesSnapshot.size()} solves with tag: $tagName")
 
-                // Delete timers in batches of 500 (Firestore batch limit)
-                timersSnapshot.documents.chunked(500).forEach { batch ->
+                // Delete solves in batches of 500 (Firestore batch limit)
+                solvesSnapshot.documents.chunked(500).forEach { batch ->
                     val writeBatch = firestore.batch()
-                    batch.forEach { timerDoc ->
-                        writeBatch.delete(timerDoc.reference)
+                    batch.forEach { solveDoc ->
+                        writeBatch.delete(solveDoc.reference)
                     }
                     writeBatch.commit().await()
                 }
