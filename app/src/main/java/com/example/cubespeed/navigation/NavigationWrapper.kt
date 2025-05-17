@@ -7,6 +7,7 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.outlined.BarChart
+import androidx.compose.material.icons.outlined.Code
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -33,6 +34,7 @@ sealed class Route(val route: String) {
     object History : Route("history")
     object Statistics : Route("statistics")
     object Settings : Route("settings")
+    object Algorithms : Route("algorithms")
 }
 
 /**
@@ -64,9 +66,9 @@ val bottomNavItems = listOf(
         icon = Icons.Outlined.BarChart
     ),
     BottomNavItem(
-        route = Route.Settings.route,
-        title = "Settings",
-        icon = Icons.Filled.Settings
+        route = Route.Algorithms.route,
+        title = "Algorithms",
+        icon = Icons.Outlined.Code
     )
 )
 

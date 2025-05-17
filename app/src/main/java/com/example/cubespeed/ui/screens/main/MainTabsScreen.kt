@@ -5,6 +5,14 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.Alignment
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -16,6 +24,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import com.example.cubespeed.model.CubeType
 import com.example.cubespeed.navigation.Route
 import com.example.cubespeed.navigation.bottomNavItems
@@ -26,6 +36,7 @@ import com.example.cubespeed.ui.components.FixedSizeAnimatedVisibility
 import com.example.cubespeed.ui.screens.history.HistoryScreen
 import com.example.cubespeed.ui.screens.settings.SettingsScreen
 import com.example.cubespeed.ui.screens.statistics.StatisticsScreen
+import com.example.cubespeed.ui.screens.algorithms.AlgorithmsScreen
 import com.example.cubespeed.ui.screens.timer.CubeSelectionDialog
 import com.example.cubespeed.ui.screens.timer.TagInputDialog
 import com.example.cubespeed.ui.screens.timer.TimerScreenRefactored
@@ -46,6 +57,9 @@ fun MainTabsScreen(
     var isTimerRunning by remember { mutableStateOf(false) }
     val showWithDelay = remember { mutableStateOf(true) }
     var isFirstLaunch = remember { mutableStateOf(true) }
+
+    // State to track if settings screen is visible
+    var showSettings by remember { mutableStateOf(false) }
 
     // State for selected cube type and tag
     var selectedCubeType by remember { mutableStateOf(AppState.selectedCubeType) }
@@ -73,7 +87,7 @@ fun MainTabsScreen(
         Route.Timer,
         Route.History,
         Route.Statistics,
-        Route.Settings
+        Route.Algorithms
     )
 
     val pagerState = rememberPagerState { pages.size }
@@ -109,11 +123,8 @@ fun MainTabsScreen(
                         title = selectedCubeType,
                         subtitle = selectedTag,
                         onSettingsClick = {
-                            // Navigate to the next screen in the bottom navigation
-                            val nextPage = (pagerState.currentPage + 1) % pages.size
-                            coroutineScope.launch {
-                                pagerState.animateScrollToPage(nextPage)
-                            }
+                            // Show settings screen
+                            showSettings = true
                         },
                         onOptionsClick = { showTagDialog = true },
                         onCubeClick = { showCubeSelectionDialog = true }
@@ -204,7 +215,46 @@ fun MainTabsScreen(
 
                         1 -> HistoryScreen()
                         2 -> StatisticsScreen()
-                        3 -> SettingsScreen(
+                        3 -> AlgorithmsScreen()
+                    }
+                }
+            }
+        }
+
+        // Settings Screen (shown as a modal when settings icon is clicked)
+        if (showSettings) {
+            Surface(
+                modifier = Modifier.fillMaxSize(),
+                color = MaterialTheme.colorScheme.background
+            ) {
+                Column {
+                    // Top bar with back button
+                    Surface(
+                        color = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            IconButton(onClick = { showSettings = false }) {
+                                Icon(
+                                    imageVector = Icons.Default.ArrowBack,
+                                    contentDescription = "Back",
+                                    tint = MaterialTheme.colorScheme.onPrimary
+                                )
+                            }
+                            Text(
+                                text = "Settings",
+                                style = MaterialTheme.typography.titleLarge,
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+                        }
+                    }
+
+                    // Settings content
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        SettingsScreen(
                             onLogout = onLogout,
                             onThemeChanged = onThemeChanged
                         )

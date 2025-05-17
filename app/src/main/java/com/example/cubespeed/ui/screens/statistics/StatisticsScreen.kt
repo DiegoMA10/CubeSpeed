@@ -198,42 +198,33 @@ fun StatisticsContent(
     // Get the ViewModel to access the Twisty Timer stats
     val viewModel: StatisticsViewModel = viewModel()
 
-    LazyColumn(
+    // Use a fixed Column instead of LazyColumn to make the screen non-scrollable
+    Column(
         modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.SpaceBetween // Push chart to top and stats to bottom
     ) {
-        // Chart section
-        item {
-            AnimatedVisibility(
-                visible = true,
-                enter = fadeIn(animationSpec = tween(1000)) +
-                        slideInVertically(animationSpec = tween(1000)) { it / 2 }
-            ) {
-                SolveTimeChart(recentSolves, movingAverages)
-            }
+        // Chart section - make it bigger
+        Box(
+            modifier = Modifier
+                .weight(1f) // Take all available space
+                .fillMaxWidth()
+        ) {
+            SolveTimeChart(recentSolves, movingAverages)
         }
 
-        // Twisty Timer style statistics table
-        item {
-            AnimatedVisibility(
-                visible = true,
-                enter = fadeIn(animationSpec = tween(1000, delayMillis = 300)) +
-                        slideInVertically(animationSpec = tween(1000, delayMillis = 300)) { it / 2 }
-            ) {
-                TwistyTimerStatsTable(viewModel.twistyTimerStats)
-            }
-        }
-
-
-        // Bottom padding
-        item {
-            Spacer(modifier = Modifier.height(80.dp))
+        // Twisty Timer style statistics table at the bottom with margin
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 16.dp) // Add margin between chart and stats
+        ) {
+            TwistyTimerStatsTable(viewModel.twistyTimerStats)
         }
     }
 }
 
 /**
- * Chart displaying solve times and moving averages with interactive panning and zooming.
+ * Chart displaying solve times and moving averages.
  * Uses the TwistyTimerChart composable for rendering.
  */
 @Composable
@@ -247,7 +238,7 @@ fun SolveTimeChart(
         movingAverages = movingAverages,
         modifier = Modifier
             .fillMaxWidth()
-            .height(320.dp)
+            .fillMaxHeight() // Fill all available height
     )
 }
 

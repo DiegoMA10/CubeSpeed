@@ -2,7 +2,7 @@ package com.example.cubespeed.ui.screens.statistics.chart
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
@@ -26,7 +26,7 @@ import com.example.cubespeed.ui.screens.timer.utils.getEffectiveTime
 
 /**
  * A composable that displays a line chart in the style of Twisty Timer.
- * Shows solve times and moving averages with interactive panning and zooming.
+ * Shows solve times and moving averages without any interactive gestures.
  *
  * @param solves The list of solves to display
  * @param movingAverages Map of moving average type to list of values
@@ -47,9 +47,9 @@ fun TwistyTimerChart(
     val gridLineColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.3f) // Grid lines
     val axisLabelColor = MaterialTheme.colorScheme.onPrimary // Axis labels
 
-    // State for pan and zoom
-    var offsetX by remember { mutableStateOf(0f) }
-    var scale by remember { mutableStateOf(1f) }
+    // Fixed values for positioning (no panning or zooming)
+    val offsetX = 0f
+    val scale = 1f
 
     Card(
         modifier = modifier,
@@ -125,7 +125,7 @@ fun TwistyTimerChart(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(top = 8.dp, end = 40.dp, bottom = 20.dp) // Add padding for axis labels
+                        .padding(top = 8.dp, end = 48.dp, bottom = 28.dp) // Add padding for axis labels
                 ) {
                     // Find min and max values for scaling
                     val allValues = mutableListOf<Double>()
@@ -142,26 +142,15 @@ fun TwistyTimerChart(
                     Canvas(
                         modifier = Modifier
                             .fillMaxSize()
-                            .pointerInput(Unit) {
-                                detectTransformGestures { _, pan, zoom, _ ->
-                                    // Update scale (zoom)
-                                    scale = (scale * zoom).coerceIn(1f, 5f) // Limit zoom between 1x and 5x
-
-                                    // Update offset (pan)
-                                    offsetX = (offsetX + pan.x).coerceIn(
-                                        -((scale - 1) * 500), // Left bound
-                                        0f // Right bound
-                                    )
-                                }
-                            }
                     ) {
                         val canvasWidth = size.width
                         val canvasHeight = size.height
 
                         // Horizontal grid lines with Y-axis labels
-                        val numHorizontalLines = 5
+                        val numHorizontalLines = 6 // Increased for better granularity
                         for (i in 0..numHorizontalLines) {
                             val y = canvasHeight * (1 - i.toFloat() / numHorizontalLines)
+                            // Draw grid line across the entire width
                             drawLine(
                                 color = gridLineColor,
                                 start = Offset(0f, y),
@@ -175,14 +164,14 @@ fun TwistyTimerChart(
                             // Convert to milliseconds for formatTime function
                             val timeMillis = (timeValue * 1000).toLong()
 
-                            // Draw time label on Y-axis using the consistent formatTime function
+                            // Draw time label on Y-axis with better alignment
                             drawContext.canvas.nativeCanvas.drawText(
                                 formatTime(timeMillis),
-                                canvasWidth + 5, // Position to the right of the chart
-                                y + 5, // Align with grid line
+                                canvasWidth + 8, // More space from the chart edge
+                                y + 4, // Better vertical alignment with grid line
                                 android.graphics.Paint().apply {
                                     color = android.graphics.Color.WHITE
-                                    textSize = 12.sp.toPx()
+                                    textSize = 11.sp.toPx() // Slightly smaller for better fit
                                     textAlign = android.graphics.Paint.Align.LEFT
                                 }
                             )
@@ -208,12 +197,19 @@ fun TwistyTimerChart(
                             val endIndex =
                                 ((endX * (solveTimes.size - 1)) / scaledWidth).toInt().coerceIn(0, solveTimes.size - 1)
 
-                            // Calculate step size based on visible range and zoom level
-                            val step = ((endIndex - startIndex) / numVerticalLines.toFloat()).coerceAtLeast(1f)
+                            // Calculate how many grid lines to show based on zoom level
+                            // More grid lines when zoomed in, fewer when zoomed out
+                            val adjustedNumVerticalLines = (numVerticalLines * scale).toInt().coerceIn(5, 10)
+
+                            // Calculate step size based on visible range and adjusted grid line count
+                            val visibleRange = endIndex - startIndex
+                            val step = (visibleRange / adjustedNumVerticalLines.toFloat()).coerceAtLeast(1f)
 
                             // Draw grid lines and labels at regular intervals
-                            for (i in 0..numVerticalLines) {
-                                val index = (startIndex + i * step).toInt().coerceIn(0, solveTimes.size - 1)
+                            for (i in 0..adjustedNumVerticalLines) {
+                                // Calculate index based on visible range
+                                val index = (startIndex + (i * visibleRange / adjustedNumVerticalLines.toFloat())).toInt()
+                                    .coerceIn(0, solveTimes.size - 1)
                                 val x = (index * pointSpacing) + offsetX
 
                                 // Only draw if within visible range
@@ -227,13 +223,14 @@ fun TwistyTimerChart(
                                     )
 
                                     // Draw solve number label directly under the point
+                                    // Use a smaller font size and better positioning
                                     drawContext.canvas.nativeCanvas.drawText(
                                         (index + 1).toString(), // +1 to start from 1 instead of 0
                                         x,
-                                        canvasHeight + 15, // Position below the chart
+                                        canvasHeight + 18, // Position further below the chart
                                         android.graphics.Paint().apply {
                                             color = android.graphics.Color.WHITE
-                                            textSize = 12.sp.toPx()
+                                            textSize = 11.sp.toPx() // Slightly smaller for better fit
                                             textAlign = android.graphics.Paint.Align.CENTER
                                         }
                                     )
@@ -267,15 +264,20 @@ fun TwistyTimerChart(
 
                             // Complete the fill path
                             if (!fillPath.isEmpty) {
-                                val lastX = ((solveTimes.size - 1) * pointSpacing) + offsetX
-                                fillPath.lineTo(lastX, canvasHeight)
-                                fillPath.lineTo(offsetX, canvasHeight)
+                                // Find the last visible X coordinate
+                                val lastVisibleX = ((solveTimes.size - 1) * pointSpacing) + offsetX
+                                val visibleLastX = if (lastVisibleX > canvasWidth) canvasWidth else lastVisibleX
+
+                                // Complete the path by going down to the bottom of the chart,
+                                // then back to the start, and closing the path
+                                fillPath.lineTo(visibleLastX, canvasHeight - 1) // Subtract 1 to avoid overlap with bottom grid line
+                                fillPath.lineTo(offsetX, canvasHeight - 1) // Subtract 1 to avoid overlap with bottom grid line
                                 fillPath.close()
 
-                                // Draw the fill
+                                // Draw the fill with slightly reduced alpha for better visibility of grid lines
                                 drawPath(
                                     path = fillPath,
-                                    color = solveLineColor.copy(alpha = 0.1f)
+                                    color = solveLineColor.copy(alpha = 0.08f) // Reduced alpha for better grid visibility
                                 )
                             }
 
@@ -314,15 +316,20 @@ fun TwistyTimerChart(
 
                             // Complete the fill path
                             if (!fillPath.isEmpty) {
-                                val lastX = ((ao5Values.size - 1) * pointSpacing) + offsetX
-                                fillPath.lineTo(lastX, canvasHeight)
-                                fillPath.lineTo(offsetX, canvasHeight)
+                                // Find the last visible X coordinate
+                                val lastVisibleX = ((ao5Values.size - 1) * pointSpacing) + offsetX
+                                val visibleLastX = if (lastVisibleX > canvasWidth) canvasWidth else lastVisibleX
+
+                                // Complete the path by going down to the bottom of the chart,
+                                // then back to the start, and closing the path
+                                fillPath.lineTo(visibleLastX, canvasHeight - 1) // Subtract 1 to avoid overlap with bottom grid line
+                                fillPath.lineTo(offsetX, canvasHeight - 1) // Subtract 1 to avoid overlap with bottom grid line
                                 fillPath.close()
 
-                                // Draw the fill
+                                // Draw the fill with slightly reduced alpha for better visibility of grid lines
                                 drawPath(
                                     path = fillPath,
-                                    color = ao5LineColor.copy(alpha = 0.1f)
+                                    color = ao5LineColor.copy(alpha = 0.08f) // Reduced alpha for better grid visibility
                                 )
                             }
 
@@ -361,15 +368,20 @@ fun TwistyTimerChart(
 
                             // Complete the fill path
                             if (!fillPath.isEmpty) {
-                                val lastX = ((ao12Values.size - 1) * pointSpacing) + offsetX
-                                fillPath.lineTo(lastX, canvasHeight)
-                                fillPath.lineTo(offsetX, canvasHeight)
+                                // Find the last visible X coordinate
+                                val lastVisibleX = ((ao12Values.size - 1) * pointSpacing) + offsetX
+                                val visibleLastX = if (lastVisibleX > canvasWidth) canvasWidth else lastVisibleX
+
+                                // Complete the path by going down to the bottom of the chart,
+                                // then back to the start, and closing the path
+                                fillPath.lineTo(visibleLastX, canvasHeight - 1) // Subtract 1 to avoid overlap with bottom grid line
+                                fillPath.lineTo(offsetX, canvasHeight - 1) // Subtract 1 to avoid overlap with bottom grid line
                                 fillPath.close()
 
-                                // Draw the fill
+                                // Draw the fill with slightly reduced alpha for better visibility of grid lines
                                 drawPath(
                                     path = fillPath,
-                                    color = ao12LineColor.copy(alpha = 0.1f)
+                                    color = ao12LineColor.copy(alpha = 0.08f) // Reduced alpha for better grid visibility
                                 )
                             }
 
