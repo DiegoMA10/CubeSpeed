@@ -7,6 +7,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import com.example.cubespeed.ui.theme.dialogButtonTextColor
 
 /**
  * A dialog for adding a comment to a solve.
@@ -41,14 +42,14 @@ fun CommentDialog(
                     onDismiss()
                 }
             ) {
-                Text("Save")
+                Text("Save", color = dialogButtonTextColor)
             }
         },
         dismissButton = {
             TextButton(
                 onClick = onDismiss
             ) {
-                Text("Cancel")
+                Text("Cancel", color = dialogButtonTextColor)
             }
         }
     )

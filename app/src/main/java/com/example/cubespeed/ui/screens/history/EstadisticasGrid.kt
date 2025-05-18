@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.sp
 import com.example.cubespeed.model.Solve
 import com.example.cubespeed.model.SolveStatus
 import com.example.cubespeed.ui.screens.timer.utils.getEffectiveTime
+import com.example.cubespeed.ui.theme.isAppInLightTheme
 
 
 /**
@@ -192,7 +193,10 @@ fun StatCard(
             containerColor = if (isSelected) 
                 MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f) 
             else 
-                Color.White
+                MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = if (isAppInLightTheme) 4.dp else 0.dp
         )
     ) {
         Box(
@@ -205,7 +209,7 @@ fun StatCard(
                 text = formatDate(solve.timestamp.toDate()),
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Light,
-                color = Color.Black,
+                color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.align(Alignment.TopStart)
             )
 
@@ -214,7 +218,7 @@ fun StatCard(
                 // Display DNF
                 Text(
                     text = "DNF",
-                    color = Color.Black,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontSize = 16.sp,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
@@ -245,7 +249,7 @@ fun StatCard(
                     // Main part of the time (hours/minutes/seconds)
                     Text(
                         text = mainPart,
-                        color = Color.Black,
+                        color = MaterialTheme.colorScheme.onSurface,
                         style = TextStyle(
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
@@ -257,7 +261,7 @@ fun StatCard(
 
                     // Milliseconds part with smaller font
                     Text(
-                        color = Color.Black,
+                        color = MaterialTheme.colorScheme.onSurface,
                         text = millisPart + suffix,
                         style = TextStyle(
                             fontSize = 12.sp,

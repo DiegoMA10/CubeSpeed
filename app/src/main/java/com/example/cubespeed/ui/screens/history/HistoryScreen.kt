@@ -12,8 +12,10 @@ import com.example.cubespeed.model.CubeType
 import com.example.cubespeed.state.AppState
 import com.example.cubespeed.ui.screens.history.components.SearchFilterBar
 import com.example.cubespeed.ui.screens.history.components.SelectionTopBar
-import com.example.cubespeed.ui.screens.timer.CubeSelectionDialog
-import com.example.cubespeed.ui.screens.timer.TagInputDialog
+import com.example.cubespeed.ui.screens.timer.dialogs.CubeSelectionDialog
+import com.example.cubespeed.ui.screens.timer.dialogs.TagInputDialog
+import com.example.cubespeed.ui.theme.dialogButtonTextColor
+import com.example.cubespeed.ui.theme.isAppInLightTheme
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -57,7 +59,8 @@ fun HistoryScreen(navController: NavController? = null) {
                 .padding(horizontal = 16.dp, vertical = 4.dp),
             shape = RoundedCornerShape(20.dp),
             color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 2.dp
+            tonalElevation = if (isAppInLightTheme) 2.dp else 0.dp,
+            shadowElevation = if (isAppInLightTheme) 2.dp else 0.dp
         ) {
             if (viewModel.isSelectionMode) {
                 // Selection mode top bar
@@ -153,7 +156,7 @@ fun HistoryScreen(navController: NavController? = null) {
             },
             dismissButton = {
                 TextButton(onClick = viewModel::hideDeleteConfirmation) {
-                    Text("Cancel")
+                    Text("Cancel", color = dialogButtonTextColor)
                 }
             }
         )

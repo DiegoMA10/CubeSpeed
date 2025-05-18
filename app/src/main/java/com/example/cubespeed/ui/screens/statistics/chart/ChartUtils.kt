@@ -1,9 +1,10 @@
 package com.example.cubespeed.ui.screens.statistics.chart
 
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import com.example.cubespeed.model.Solve
-import com.example.cubespeed.model.SolveStatus
 import com.example.cubespeed.ui.screens.timer.utils.getEffectiveTime
+import com.example.cubespeed.ui.theme.*
 
 /**
  * Utility functions for creating chart data from solve data.
@@ -21,21 +22,22 @@ object ChartUtils {
      * @param bestPointColor Color for the best time points
      * @return LineChartData for use with the LineChart composable
      */
+    @Composable
     fun createChartData(
         solves: List<Solve>,
         movingAverages: Map<String, List<Double>>,
-        solveLineColor: Color = Color.White,
-        ao5LineColor: Color = Color(0xFFFF5252),
-        ao12LineColor: Color = Color(0xFF4CAF50),
-        bestPointColor: Color = Color(0xFFFFEB3B)
+        solveLineColor: Color = if (isAppInLightTheme) ChartSolveLineColorLight else ChartSolveLineColorDark,
+        ao5LineColor: Color = ChartAo5LineColor,
+        ao12LineColor: Color = if (isAppInLightTheme) ChartAo12LineColorLight else ChartAo12LineColorDark,
+        bestPointColor: Color = ChartBestPointColor
     ): LineChartData {
         if (solves.isEmpty()) {
             return LineChartData(emptyList())
         }
 
         // Convert solve times to seconds
-        val solveTimes = solves.map { 
-            getEffectiveTime(it.time, it.status).toDouble() / 1000.0 
+        val solveTimes = solves.map {
+            getEffectiveTime(it.time, it.status).toDouble() / 1000.0
         }
 
         // Find min and max values for scaling
@@ -69,7 +71,7 @@ object ChartUtils {
         dataSets.add(
             LineChartDataSet(
                 entries = solveEntries,
-                label = "Todo",
+                label = "Everything",
                 color = solveLineColor,
                 highlightColor = bestPointColor,
                 fillColor = solveLineColor.copy(alpha = 0.1f) // Subtle fill under the curve

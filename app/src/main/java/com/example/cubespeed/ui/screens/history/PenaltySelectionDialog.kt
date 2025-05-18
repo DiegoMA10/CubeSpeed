@@ -6,6 +6,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.cubespeed.model.SolveStatus
+import com.example.cubespeed.ui.theme.dialogButtonTextColor
 
 /**
  * A dialog for selecting a penalty for a solve.
@@ -91,14 +92,14 @@ fun PenaltySelectionDialog(
                     onDismiss()
                 }
             ) {
-                Text("Apply")
+                Text("Apply", color = dialogButtonTextColor)
             }
         },
         dismissButton = {
             TextButton(
                 onClick = onDismiss
             ) {
-                Text("Cancel")
+                Text("Cancel", color = dialogButtonTextColor)
             }
         }
     )

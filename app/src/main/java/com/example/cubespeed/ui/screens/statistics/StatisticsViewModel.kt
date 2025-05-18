@@ -141,9 +141,9 @@ class StatisticsViewModel : ViewModel() {
                     // Sort by timestamp for chronological order
                     val solvesList = solves.sortedBy { it.timestamp }
 
-                    // If we have more than 100 solves, take only the most recent 100
-                    val limitedSolves = if (solvesList.size > 100) {
-                        solvesList.takeLast(100)
+                    // If we have more than 1000 solves, take only the most recent 1000
+                    val limitedSolves = if (solvesList.size > 1000) {
+                        solvesList.takeLast(1000)
                     } else {
                         solvesList
                     }
@@ -157,7 +157,7 @@ class StatisticsViewModel : ViewModel() {
                     // Set loading to false after data is loaded
                     isLoading = false
                 },
-                pageSize = 100,
+                pageSize = 1000, // Increased from 100 to ensure all solves are loaded
                 selectedCubeType = cubeType.displayName,
                 selectedTag = tagId
             )

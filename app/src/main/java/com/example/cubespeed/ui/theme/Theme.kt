@@ -1,15 +1,9 @@
 package com.example.cubespeed.ui.theme
 
-import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
-import androidx.compose.material3.lightColorScheme
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
@@ -29,42 +23,42 @@ private val BlueColorScheme = lightColorScheme(
     tertiary = BlueTertiary,
     background = BlueBackground,
     surface = BlueSurface,
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
+    onPrimary = BlueOnPrimary,
+    onSecondary = BlueOnSecondary,
+    onTertiary = BlueOnTertiary,
     onPrimaryContainer = TimerScreenBackground,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F)
+    onBackground = BlueOnBackground,
+    onSurface = BlueOnSurface
 )
 
 // Light theme
 private val LightColorScheme = lightColorScheme(
-    primary = Color.White,
-    secondary = Color(0xFFF3F3F3),
-    tertiary = Color.White,
-    background = Color.White,
-    surface = Color.White,
-    onPrimary = Color.Black,
-    onSecondary = Color.Black,
-    onTertiary = Color.Black,
-    onPrimaryContainer = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F)
+    primary = LightPrimary,
+    secondary = LightSecondary,
+    tertiary = LightTertiary,
+    background = LightBackground,
+    surface = LightSurface,
+    onPrimary = LightOnPrimary,
+    onSecondary = LightOnSecondary,
+    onTertiary = LightOnTertiary,
+    onPrimaryContainer = LightOnPrimaryContainer,
+    onBackground = LightOnBackground,
+    onSurface = LightOnSurface
 )
 
 // Dark theme
 private val DarkColorScheme = darkColorScheme(
-    primary = Color.Black,
-    secondary = Color.DarkGray,
+    primary = DarkPrimary,
+    secondary = DarkSecondary,
     tertiary = DarkTertiary,
-    background = Color.Black,
+    background = DarkBackground,
     surface = DarkSurface,
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color.White,
-    onPrimaryContainer = Color.Black,
-    onSurface = Color.White
+    onPrimary = DarkOnPrimary,
+    onSecondary = DarkOnSecondary,
+    onTertiary = DarkOnTertiary,
+    onBackground = DarkOnBackground,
+    onPrimaryContainer = DarkOnPrimaryContainer,
+    onSurface = DarkOnSurface
 )
 
 // Composition local for theme preference
@@ -85,6 +79,25 @@ val isAppInDarkTheme: Boolean
     @Composable
     @ReadOnlyComposable
     get() = LocalThemePreference.current == AppThemeType.DARK
+
+/**
+ * Check if the current theme is light
+ */
+val isAppInLightTheme: Boolean
+    @Composable
+    @ReadOnlyComposable
+    get() = LocalThemePreference.current != AppThemeType.DARK
+
+/**
+ * Get the appropriate button text color based on the current theme
+ */
+val dialogButtonTextColor: Color
+    @Composable
+    @ReadOnlyComposable
+    get() = when (LocalThemePreference.current) {
+        AppThemeType.DARK -> Color.White
+        else -> Color.Black
+    }
 
 /**
  * Main theme for the CubeSpeed app

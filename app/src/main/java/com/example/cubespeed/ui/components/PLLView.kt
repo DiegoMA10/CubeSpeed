@@ -47,8 +47,15 @@ fun PLLView(
 ) {
     // Get PLL image resource
     val context = LocalContext.current
+
+    // Convert new PLL case name format to old resource name format
+    val resourceName = when {
+        pllCase.length == 1 -> "pll_${pllCase.lowercase()}_perm" // Single letter cases like "E" -> "pll_e_perm"
+        else -> "pll_${pllCase.lowercase()}_perm" // Cases like "Aa" -> "pll_aa_perm"
+    }
+
     val resourceId = context.resources.getIdentifier(
-        "pll_${pllCase}",
+        resourceName,
         "drawable",
         context.packageName
     )
@@ -139,7 +146,7 @@ fun PreviewPLLView() {
     val state = AlgUtils.getCaseState(LocalContext.current, "OLL", "OLL 01")
     PLLView(
         state = state,
-        pllCase = "t_perm",
+        pllCase = "T",
         size = 200.dp,
         gap = 6.dp,
         cornerRadius = 7.dp
@@ -153,7 +160,7 @@ fun PreviewPLLViewWithDifferentCase() {
     val state = AlgUtils.getCaseState(LocalContext.current, "OLL", "OLL 01")
     PLLView(
         state = state,
-        pllCase = "aa_perm",
+        pllCase = "Aa",
         size = 200.dp,
         gap = 6.dp,
         cornerRadius = 7.dp

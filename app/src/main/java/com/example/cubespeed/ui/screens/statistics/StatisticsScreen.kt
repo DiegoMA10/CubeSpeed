@@ -1,12 +1,7 @@
 package com.example.cubespeed.ui.screens.statistics
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DateRange
@@ -28,9 +23,10 @@ import com.example.cubespeed.model.SolveStatus
 import com.example.cubespeed.repository.SolveStatistics
 import com.example.cubespeed.state.AppState
 import com.example.cubespeed.ui.screens.statistics.chart.TwistyTimerChart
-import com.example.cubespeed.ui.screens.timer.CubeSelectionDialog
-import com.example.cubespeed.ui.screens.timer.TagInputDialog
+import com.example.cubespeed.ui.screens.timer.dialogs.CubeSelectionDialog
+import com.example.cubespeed.ui.screens.timer.dialogs.TagInputDialog
 import com.example.cubespeed.ui.screens.timer.utils.formatTime
+import com.example.cubespeed.ui.theme.isAppInLightTheme
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -260,6 +256,9 @@ fun SummaryMetrics(statistics: SolveStatistics) {
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = if (isAppInLightTheme) 4.dp else 0.dp
         )
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
@@ -339,7 +338,7 @@ fun ProgressMetricsTable(statistics: SolveStatistics) {
         )
 
         MetricsTableRow(
-            label = "Mejor",
+            label = "Best",
             globalValue = formatTime(statistics.best),
             sessionValue = formatTime(statistics.best),
             isEvenRow = false
@@ -434,7 +433,7 @@ fun OtherMetricsTable(statistics: SolveStatistics) {
         )
 
         MetricsTableRow(
-            label = "Mejor",
+            label = "Best",
             globalValue = formatTime(statistics.best),
             sessionValue = formatTime(statistics.best),
             isEvenRow = false
@@ -540,6 +539,9 @@ fun MetricCard(
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = if (isAppInLightTheme) 4.dp else 0.dp
         )
     ) {
         Column(
@@ -592,6 +594,9 @@ fun SessionCard(
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = if (isAppInLightTheme) 4.dp else 0.dp
         )
     ) {
         Row(
@@ -691,6 +696,9 @@ fun TwistyTimerStatsTable(stats: TwistyTimerStats) {
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = if (isAppInLightTheme) 4.dp else 0.dp
         )
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {

@@ -23,6 +23,11 @@ import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.cubespeed.ui.theme.ChartAxisLabelColorLight
+import com.example.cubespeed.ui.theme.ChartAxisLabelColorDark
+import com.example.cubespeed.ui.theme.ChartGridLineColorLight
+import com.example.cubespeed.ui.theme.ChartGridLineColorDark
+import com.example.cubespeed.ui.theme.isAppInLightTheme
 import kotlin.math.max
 import kotlin.math.min
 
@@ -41,8 +46,8 @@ fun LineChart(
     data: LineChartData,
     modifier: Modifier = Modifier,
     backgroundColor: Color = MaterialTheme.colorScheme.primary,
-    gridLineColor: Color = Color.White.copy(alpha = 0.3f),
-    axisLabelColor: Color = Color.White,
+    gridLineColor: Color = if (isAppInLightTheme) ChartGridLineColorLight else ChartGridLineColorDark,
+    axisLabelColor: Color = if (isAppInLightTheme) ChartAxisLabelColorLight else ChartAxisLabelColorDark,
     showLegend: Boolean = true
 ) {
     // State for pan and zoom
@@ -130,7 +135,8 @@ fun LineChart(
                                 yMin = data.yMin,
                                 yMax = data.yMax,
                                 scale = scale,
-                                offsetX = offsetX
+                                offsetX = offsetX,
+                                axisLabelColor = axisLabelColor
                             )
                         }
                     }
@@ -258,7 +264,8 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawDataSet(
     yMin: Float,
     yMax: Float,
     scale: Float,
-    offsetX: Float
+    offsetX: Float,
+    axisLabelColor: Color
 ) {
     if (dataSet.entries.isEmpty()) return
 
@@ -312,7 +319,12 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawDataSet(
                     x,
                     y - 10,
                     android.graphics.Paint().apply {
-                        color = android.graphics.Color.WHITE
+                        color = android.graphics.Color.argb(
+                            (axisLabelColor.alpha * 255).toInt(),
+                            (axisLabelColor.red * 255).toInt(),
+                            (axisLabelColor.green * 255).toInt(),
+                            (axisLabelColor.blue * 255).toInt()
+                        )
                         textSize = 30f
                         textAlign = android.graphics.Paint.Align.CENTER
                     }
@@ -372,7 +384,7 @@ private fun ChartLegend(dataSets: List<LineChartDataSet>) {
                 Text(
                     text = dataSet.label,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onPrimary
+                    color = if (isAppInLightTheme) Color.Black else Color.White
                 )
             }
         }

@@ -37,8 +37,8 @@ import com.example.cubespeed.ui.screens.history.HistoryScreen
 import com.example.cubespeed.ui.screens.settings.SettingsScreen
 import com.example.cubespeed.ui.screens.statistics.StatisticsScreen
 import com.example.cubespeed.ui.screens.algorithms.AlgorithmsScreen
-import com.example.cubespeed.ui.screens.timer.CubeSelectionDialog
-import com.example.cubespeed.ui.screens.timer.TagInputDialog
+import com.example.cubespeed.ui.screens.timer.dialogs.CubeSelectionDialog
+import com.example.cubespeed.ui.screens.timer.dialogs.TagInputDialog
 import com.example.cubespeed.ui.screens.timer.TimerScreenRefactored
 import com.example.cubespeed.ui.theme.AppThemeType
 import kotlinx.coroutines.launch
@@ -154,7 +154,7 @@ fun MainTabsScreen(
                                     Route.Timer.route -> 0
                                     Route.History.route -> 1
                                     Route.Statistics.route -> 2
-                                    Route.Settings.route -> 3
+                                    Route.Algorithms.route -> 3
                                     else -> 0
                                 }
 
@@ -175,7 +175,7 @@ fun MainTabsScreen(
                                                     Route.Timer.route -> 0
                                                     Route.History.route -> 1
                                                     Route.Statistics.route -> 2
-                                                    Route.Settings.route -> 3
+                                                    Route.Algorithms.route -> 3
                                                     else -> 0
                                                 }
                                             )
@@ -215,7 +215,7 @@ fun MainTabsScreen(
 
                         1 -> HistoryScreen()
                         2 -> StatisticsScreen()
-                        3 -> AlgorithmsScreen()
+                        3 -> AlgorithmsScreen(navController)
                     }
                 }
             }

@@ -24,6 +24,7 @@ import com.example.cubespeed.repository.FirebaseRepository
 import com.example.cubespeed.state.AppState
 import com.example.cubespeed.ui.screens.timer.dialogs.CommentDialog
 import com.example.cubespeed.ui.screens.timer.utils.getEffectiveTime
+import com.example.cubespeed.ui.theme.isAppInLightTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -68,7 +69,10 @@ fun TimeDetailDialog(
                     .clickable(enabled = false) { /* Prevent clicks from passing through */ },
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = Color.White
+                    containerColor = if (isAppInLightTheme) Color.White else MaterialTheme.colorScheme.surface
+                ),
+                elevation = CardDefaults.cardElevation(
+                    defaultElevation = if (isAppInLightTheme) 4.dp else 0.dp
                 )
             ) {
                 Column(
@@ -91,7 +95,7 @@ fun TimeDetailDialog(
                                     style = TextStyle(
                                         fontSize = 24.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = Color.Black
+                                        color = MaterialTheme.colorScheme.onSurface
                                     ),
                                     maxLines = 1,
                                     overflow = TextOverflow.Clip
@@ -115,7 +119,7 @@ fun TimeDetailDialog(
                                     style = TextStyle(
                                         fontSize = 24.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = Color.Black,
+                                        color = MaterialTheme.colorScheme.onSurface,
                                         baselineShift = BaselineShift.None
                                     ),
                                     maxLines = 1,
@@ -128,7 +132,7 @@ fun TimeDetailDialog(
                                     style = TextStyle(
                                         fontSize = 18.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = Color.Black,
+                                        color = MaterialTheme.colorScheme.onSurface,
                                         baselineShift = BaselineShift(0.082F)
                                     ),
                                     maxLines = 1,
@@ -204,7 +208,7 @@ fun TimeDetailDialog(
                             Text(
                                 text = solve.comments,
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = Color.Black,
+                                color = MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.weight(1f),
                                 maxLines = 3,
                                 overflow = TextOverflow.Ellipsis
@@ -242,7 +246,7 @@ fun TimeDetailDialog(
                             Text(
                                 text = solve.scramble,
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = Color.Black,
+                                color = MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.weight(1f),
                                 maxLines = if (isScrambleExpanded) Int.MAX_VALUE else 3,
                                 overflow = TextOverflow.Ellipsis

@@ -14,6 +14,30 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.cubespeed.ui.screens.history.SortOrder
+import com.example.cubespeed.ui.theme.AppThemeType
+import com.example.cubespeed.ui.theme.LocalThemePreference
+
+/**
+ * Helper function to determine the appropriate icon color based on the current theme and selection state
+ */
+@Composable
+private fun getIconColor(isSelected: Boolean): Color {
+    val currentTheme = LocalThemePreference.current
+
+    return when {
+        isSelected -> {
+            when (currentTheme) {
+                AppThemeType.LIGHT -> Color.Black
+                AppThemeType.DARK -> Color.White
+                AppThemeType.BLUE -> MaterialTheme.colorScheme.secondary
+            }
+        }
+        else -> {
+            // Non-selected icons are gray in all themes
+            Color.Gray
+        }
+    }
+}
 
 /**
  * A composable that displays a search and filter bar for the history screen.
@@ -60,7 +84,7 @@ fun SearchFilterBar(
                 Icon(
                     imageVector = Icons.Default.Search,
                     contentDescription = "Search",
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = getIconColor(isSelected = false),
                     modifier = Modifier.size(24.dp)
                 )
             },
@@ -97,11 +121,11 @@ fun SearchFilterBar(
             colors = TextFieldDefaults.colors(
                 focusedContainerColor = Color.Transparent,
                 unfocusedContainerColor = Color.Transparent,
-                focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                focusedIndicatorColor = MaterialTheme.colorScheme.secondary,
                 unfocusedIndicatorColor = MaterialTheme.colorScheme.outline,
                 focusedTextColor = MaterialTheme.colorScheme.onSurface,
                 unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                cursorColor = MaterialTheme.colorScheme.primary,
+                cursorColor = MaterialTheme.colorScheme.secondary,
                 focusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                 unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
             ),
@@ -127,10 +151,7 @@ fun SearchFilterBar(
             Icon(
                 imageVector = Icons.Default.DateRange,
                 contentDescription = "Sort by date",
-                tint = if (sortOrder == SortOrder.DATE_DESC || sortOrder == SortOrder.DATE_ASC)
-                    MaterialTheme.colorScheme.primary
-                else
-                    MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = getIconColor(isSelected = sortOrder == SortOrder.DATE_DESC || sortOrder == SortOrder.DATE_ASC),
                 modifier = Modifier.size(20.dp)
             )
         }
@@ -150,10 +171,7 @@ fun SearchFilterBar(
             Icon(
                 imageVector = Icons.Default.Timer,
                 contentDescription = "Sort by time",
-                tint = if (sortOrder == SortOrder.TIME_ASC || sortOrder == SortOrder.TIME_DESC)
-                    MaterialTheme.colorScheme.primary
-                else
-                    MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = getIconColor(isSelected = sortOrder == SortOrder.TIME_ASC || sortOrder == SortOrder.TIME_DESC),
                 modifier = Modifier.size(20.dp)
             )
         }
@@ -172,7 +190,7 @@ fun SearchFilterBar(
                     SortOrder.TIME_DESC -> Icons.Default.ArrowDownward
                 },
                 contentDescription = "Sort direction",
-                tint = MaterialTheme.colorScheme.primary,
+                tint = getIconColor(isSelected = true),
                 modifier = Modifier.size(20.dp)
             )
         }

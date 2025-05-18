@@ -102,27 +102,27 @@ object AlgUtils {
     // PLL case states with realistic patterns (21 characters)
     // Format: 3 frontales + 3 izquierdos + 9 superiores + 3 derechos + 3 traseros
     private val pllCaseStates = mapOf(
-        "aa_perm" to "GOGOBBYYYYYYYYYRGBRRO",
-        "ab_perm" to "OORBBRYYYYYYYYYBGOGRG",
-        "e_perm" to "GOBOBRYYYYYYYYYOGRGRB",
-        "f_perm" to "GOBOGBYYYYYYYYYOBGRRR",
-        "ga_perm" to "RBOGROYYYYYYYYYGGRBOB",
-        "gb_perm" to "BRORORYYYYYYYYYGGBGBO",
-        "gc_perm" to "OGRBBRYYYYYYYYYBROGOG",
-        "gd_perm" to "ORGBBGYYYYYYYYYROROGB",
-        "h_perm" to "OROBGBYYYYYYYYYGBGROR",
-        "ja_perm" to "BOORROYYYYYYYYYGGGBBR",
-        "jb_perm" to "OOGBBBYYYYYYYYYRRORGG",
-        "na_perm" to "OORBGGYYYYYYYYYBBGORR",
-        "nb_perm" to "ROOGGBYYYYYYYYYGBBRRO",
-        "ra_perm" to "OGOBBRYYYYYYYYYGORGRB",
-        "rb_perm" to "GOBOBBYYYYYYYYYORGRGR",
-        "t_perm" to "OOGBGBYYYYYYYYYRBORRG",
-        "ua_perm" to "OBOBGBYYYYYYYYYGOGRRR",
-        "ub_perm" to "OGOBOBYYYYYYYYYGBGRRR",
-        "v_perm" to "RGOGBBYYYYYYYYYGOBRRO",
-        "y_perm" to "RBOGOBYYYYYYYYYGGBRRO",
-        "z_perm" to "OBOBOBYYYYYYYYYGRGRGR"
+        "Aa" to "GOGOBBYYYYYYYYYRGBRRO",
+        "Ab" to "OORBBRYYYYYYYYYBGOGRG",
+        "E" to "GOBOBRYYYYYYYYYOGRGRB",
+        "F" to "GOBOGBYYYYYYYYYOBGRRR",
+        "Ga" to "RBOGROYYYYYYYYYGGRBOB",
+        "Gb" to "BRORORYYYYYYYYYGGBGBO",
+        "Gc" to "OGRBBRYYYYYYYYYBROGOG",
+        "Gd" to "ORGBBGYYYYYYYYYROROGB",
+        "H" to "OROBGBYYYYYYYYYGBGROR",
+        "Ja" to "BOORROYYYYYYYYYGGGBBR",
+        "Jb" to "OOGBBBYYYYYYYYYRRORGG",
+        "Na" to "OORBGGYYYYYYYYYBBGORR",
+        "Nb" to "ROOGGBYYYYYYYYYGBBRRO",
+        "Ra" to "OGOBBRYYYYYYYYYGORGRB",
+        "Rb" to "GOBOBBYYYYYYYYYORGRGR",
+        "T" to "OOGBGBYYYYYYYYYRBORRG",
+        "Ua" to "OBOBGBYYYYYYYYYGOGRRR",
+        "Ub" to "OGOBOBYYYYYYYYYGBGRRR",
+        "V" to "RGOGBBYYYYYYYYYGOBRRO",
+        "Y" to "RBOGOBYYYYYYYYYGGBRRO",
+        "Z" to "OBOBOBYYYYYYYYYGRGRGR"
     )
 
     /**
@@ -184,27 +184,27 @@ object AlgUtils {
      */
     fun getAllPLLCases(): List<String> {
         return listOf(
-            "aa_perm",
-            "ab_perm",
-            "e_perm",
-            "f_perm",
-            "ga_perm",
-            "gb_perm",
-            "gc_perm",
-            "gd_perm",
-            "h_perm",
-            "ja_perm",
-            "jb_perm",
-            "na_perm",
-            "nb_perm",
-            "ra_perm",
-            "rb_perm",
-            "t_perm",
-            "ua_perm",
-            "ub_perm",
-            "v_perm",
-            "y_perm",
-            "z_perm"
+            "Aa",
+            "Ab",
+            "E",
+            "F",
+            "Ga",
+            "Gb",
+            "Gc",
+            "Gd",
+            "H",
+            "Ja",
+            "Jb",
+            "Na",
+            "Nb",
+            "Ra",
+            "Rb",
+            "T",
+            "Ua",
+            "Ub",
+            "V",
+            "Y",
+            "Z"
         )
     }
 
@@ -497,87 +497,87 @@ object AlgUtils {
                     "M' U M' U M' U M' U2 M' U M' U M' U M'"
 
             // PLL Algorithms
-            "aa_perm" -> "x R' U R' D2 R U' R' D2 R2 x' \n" +
+            "Aa" -> "x R' U R' D2 R U' R' D2 R2 x' \n" +
                     "l' U R' D2 R U' R' D2 R2 \n" +
                     "R' F R' B2 R F' R' B2 R2"
 
-            "ab_perm" -> "x R2 D2 R U R' D2 R U' R x' \n" +
+            "Ab" -> "x R2 D2 R U R' D2 R U' R x' \n" +
                     "l U' R D2 R' U R D2 R2 \n" +
                     "R2 B2 R F R' B2 R F' R"
 
-            "e_perm" -> "x' R U' R' D R U R' D' R U R' D R U' R' D' x \n" +
+            "E" -> "x' R U' R' D R U R' D' R U R' D R U' R' D' x \n" +
                     "R' U L' D2 L U' R L' U R' D2 R U' L \n" +
                     "R2 U R' U' y R U R' U' R U R' U' R U R' y' R U' R2"
 
-            "f_perm" -> "R' U' F' R U R' U' R' F R2 U' R' U' R U R' U R \n" +
+            "F" -> "R' U' F' R U R' U' R' F R2 U' R' U' R U R' U R \n" +
                     "R' U2 R' d' R' F' R2 U' R' U R' F R F \n" +
                     "M' U2 L F' R U2 r' U r' R2 U2 R2"
 
-            "ga_perm" -> "R2 U R' U R' U' R U' R2 D U' R' U R D' \n" +
+            "Ga" -> "R2 U R' U R' U' R U' R2 D U' R' U R D' \n" +
                     "R2 u R' U R' U' R u' R2 y' R' U R \n" +
                     "R2 U R' U R' U' R U' R2 U' D R' U R D'"
 
-            "gb_perm" -> "R' U' R U D' R2 U R' U R U' R U' R2 D \n" +
+            "Gb" -> "R' U' R U D' R2 U R' U R U' R U' R2 D \n" +
                     "R' d' F R2 u R' U R U' R u' R2 \n" +
                     "F' U' F R2 u R' U R U' R u' R2"
 
-            "gc_perm" -> "R2 U' R U' R U R' U R2 D' U R U' R' D \n" +
+            "Gc" -> "R2 U' R U' R U R' U R2 D' U R U' R' D \n" +
                     "R2 F2 R U2 R U2 R' F R U R' U' R' F R2 \n" +
                     "R2 u' R U' R U R' u R2 y R U' R'"
 
-            "gd_perm" -> "R U R' U' D R2 U' R U' R' U R' U R2 D' \n" +
+            "Gd" -> "R U R' U' D R2 U' R U' R' U R' U R2 D' \n" +
                     "R U R' y' R2 u' R U' R' U R' u R2 \n" +
                     "f R f' R2 u' R U' R' U R' u R2"
 
-            "h_perm" -> "M2 U M2 U2 M2 U M2 \n" +
+            "H" -> "M2 U M2 U2 M2 U M2 \n" +
                     "M2 U' M2 U2 M2 U' M2 \n" +
                     "R2 U2 R2 U2 R2 U2 R2 U2"
 
-            "ja_perm" -> "x R2 F R F' R U2 r' U r U2 x' \n" +
+            "Ja" -> "x R2 F R F' R U2 r' U r U2 x' \n" +
                     "R' U L' U2 R U' R' U2 R L \n" +
                     "L' U' L F L' U' L U L F' L2 U L"
 
-            "jb_perm" -> "R U R' F' R U R' U' R' F R2 U' R' \n" +
+            "Jb" -> "R U R' F' R U R' U' R' F R2 U' R' \n" +
                     "R U2 R' U' R U2 L' U R' U' L \n" +
                     "R' U R U' R2 F' R U R U' R' F R U' R'"
 
-            "na_perm" -> "R U R' U R U R' F' R U R' U' R' F R2 U' R' U2 R U' R' \n" +
+            "Na" -> "R U R' U R U R' F' R U R' U' R' F R2 U' R' U2 R U' R' \n" +
                     "z U R' D R2 U' R D' U R' D R2 U' R D' z' \n" +
                     "F' R U R' U' R' F R2 F U' R' U' R U F' R'"
 
-            "nb_perm" -> "R' U R U' R' F' U' F R U R' F R' F' R U' R \n" +
+            "Nb" -> "R' U R U' R' F' U' F R U R' F R' F' R U' R \n" +
                     "r' D' F r U' r' F' D r2 U r' U' r' F r F' \n" +
                     "R' U L' U2 R U' L R' U L' U2 R U' L"
 
-            "ra_perm" -> "R U R' F' R U2 R' U2 R' F R U R U2 R' \n" +
+            "Ra" -> "R U R' F' R U2 R' U2 R' F R U R U2 R' \n" +
                     "R U' R' U' R U R D R' U' R D' R' U2 R' \n" +
                     "L U2 L' U2 L F' L' U' L U L F L2"
 
-            "rb_perm" -> "R2 F R U R U' R' F' R U2 R' U2 R \n" +
+            "Rb" -> "R2 F R U R U' R' F' R U2 R' U2 R \n" +
                     "R' U2 R U2 R' F R U R' U' R' F' R2 \n" +
                     "R' U2 R' D' R U' R' D R U R U' R' U' R"
 
-            "t_perm" -> "R U R' U' R' F R2 U' R' U' R U R' F' \n" +
+            "T" -> "R U R' U' R' F R2 U' R' U' R U R' F' \n" +
                     "R2 U R2 U' R2 U' D R2 U' R2 U R2 D' \n" +
                     "x' R2 U' R' U R' U' R U R2 D' U R' U R D x"
 
-            "ua_perm" -> "M2 U M U2 M' U M2 \n" +
+            "Ua" -> "M2 U M U2 M' U M2 \n" +
                     "R2 U' R' U' R U R U R U' R \n" +
                     "M2 U M' U2 M U M2"
 
-            "ub_perm" -> "M2 U' M U2 M' U' M2 \n" +
+            "Ub" -> "M2 U' M U2 M' U' M2 \n" +
                     "R' U R' U' R' U' R' U R U R2 \n" +
                     "M2 U' M' U2 M U' M2"
 
-            "v_perm" -> "R' U R' d' R' F' R2 U' R' U R' F R F \n" +
+            "V" -> "R' U R' d' R' F' R2 U' R' U R' F R F \n" +
                     "R' U R' U' y R' F' R2 U' R' U R' F R F \n" +
                     "z D' R2 D R2 U R' D' R U' R U R' D R U' z'"
 
-            "y_perm" -> "F R U' R' U' R U R' F' R U R' U' R' F R F' \n" +
+            "Y" -> "F R U' R' U' R U R' F' R U R' U' R' F R F' \n" +
                     "F R' F R2 U' R' U' R U R' F' R U R' U' F' \n" +
                     "R2 U' R2 U' R2 U y' R2 U' R2 U' R2"
 
-            "z_perm" -> "M' U M2 U M2 U M' U2 M2 \n" +
+            "Z" -> "M' U M2 U M2 U M' U2 M2 \n" +
                     "M2 U M2 U M' U2 M2 U2 M' \n" +
                     "M' U' M2 U' M2 U' M' U2 M2"
 

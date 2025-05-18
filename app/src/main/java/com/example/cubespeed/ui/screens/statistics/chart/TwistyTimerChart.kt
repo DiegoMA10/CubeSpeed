@@ -2,14 +2,13 @@ package com.example.cubespeed.ui.screens.statistics.chart
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -17,12 +16,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.cubespeed.model.Solve
 import com.example.cubespeed.ui.screens.statistics.formatTime
 import com.example.cubespeed.ui.screens.timer.utils.getEffectiveTime
+import com.example.cubespeed.ui.theme.*
+import com.example.cubespeed.ui.theme.LocalThemePreference
+import com.example.cubespeed.ui.theme.AppThemeType
 
 /**
  * A composable that displays a line chart in the style of Twisty Timer.
@@ -38,14 +39,29 @@ fun TwistyTimerChart(
     movingAverages: Map<String, List<Double>>,
     modifier: Modifier = Modifier
 ) {
-    // Define colors for the chart using Material3 color scheme
+    // Define colors for the chart using theme color definitions
     val backgroundColor = MaterialTheme.colorScheme.primary // Primary color background
-    val solveLineColor = MaterialTheme.colorScheme.onPrimary // On primary color for all solves
-    val ao5LineColor = MaterialTheme.colorScheme.error // Error color for Ao5
-    val ao12LineColor = MaterialTheme.colorScheme.tertiary // Tertiary color for Ao12
-    val bestPointColor = MaterialTheme.colorScheme.secondary // Secondary color for best times
-    val gridLineColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.3f) // Grid lines
-    val axisLabelColor = MaterialTheme.colorScheme.onPrimary // Axis labels
+    val solveLineColor = when (LocalThemePreference.current) {
+        AppThemeType.BLUE -> Color.White
+        AppThemeType.LIGHT -> ChartSolveLineColorLight
+        else -> ChartSolveLineColorDark
+    } // Solve line color
+    val ao5LineColor = ChartAo5LineColor // Ao5 line color
+    val ao12LineColor = when (LocalThemePreference.current) {
+        AppThemeType.LIGHT -> ChartAo12LineColorLight
+        else -> ChartAo12LineColorDark
+    } // Ao12 line color
+    val bestPointColor = ChartBestPointColor // Best point color
+    val gridLineColor = when (LocalThemePreference.current) {
+        AppThemeType.BLUE -> Color.White
+        AppThemeType.LIGHT -> ChartGridLineColorLight
+        else -> ChartGridLineColorDark
+    } // Grid lines
+    val axisLabelColor = when (LocalThemePreference.current) {
+        AppThemeType.BLUE -> Color.White
+        AppThemeType.LIGHT -> ChartAxisLabelColorLight
+        else -> ChartAxisLabelColorDark
+    } // Axis labels
 
     // Fixed values for positioning (no panning or zooming)
     val offsetX = 0f
@@ -55,13 +71,16 @@ fun TwistyTimerChart(
         modifier = modifier,
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = backgroundColor
+            containerColor = Color.Transparent
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 0.dp
         )
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp)
+                .padding(start = 4.dp)
         ) {
             // If no solves, show a message
             if (solves.isEmpty()) {
@@ -72,7 +91,11 @@ fun TwistyTimerChart(
                     Text(
                         text = "No solves available",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = Color.White.copy(alpha = 0.8f)
+                        color = when (LocalThemePreference.current) {
+                            AppThemeType.BLUE -> Color.White
+                            AppThemeType.LIGHT -> Color.Black
+                            else -> Color.White
+                        }
                     )
                 }
             } else {
@@ -91,14 +114,14 @@ fun TwistyTimerChart(
                     // Solves legend
                     ChartLegendItem(
                         color = solveLineColor,
-                        label = "Todo",
+                        label = "Everything",
                         isPoint = false
                     )
 
                     // Best times legend
                     ChartLegendItem(
                         color = bestPointColor,
-                        label = "Mejor",
+                        label = "Best",
                         isPoint = true
                     )
 
@@ -125,7 +148,7 @@ fun TwistyTimerChart(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(top = 8.dp, end = 48.dp, bottom = 28.dp) // Add padding for axis labels
+                        .padding(top = 8.dp, end = 48.dp, bottom = 36.dp) // Add padding for axis labels
                 ) {
                     // Find min and max values for scaling
                     val allValues = mutableListOf<Double>()
@@ -170,7 +193,12 @@ fun TwistyTimerChart(
                                 canvasWidth + 8, // More space from the chart edge
                                 y + 4, // Better vertical alignment with grid line
                                 android.graphics.Paint().apply {
-                                    color = android.graphics.Color.WHITE
+                                    color = android.graphics.Color.argb(
+                                        (axisLabelColor.alpha * 255).toInt(),
+                                        (axisLabelColor.red * 255).toInt(),
+                                        (axisLabelColor.green * 255).toInt(),
+                                        (axisLabelColor.blue * 255).toInt()
+                                    )
                                     textSize = 11.sp.toPx() // Slightly smaller for better fit
                                     textAlign = android.graphics.Paint.Align.LEFT
                                 }
@@ -208,8 +236,9 @@ fun TwistyTimerChart(
                             // Draw grid lines and labels at regular intervals
                             for (i in 0..adjustedNumVerticalLines) {
                                 // Calculate index based on visible range
-                                val index = (startIndex + (i * visibleRange / adjustedNumVerticalLines.toFloat())).toInt()
-                                    .coerceIn(0, solveTimes.size - 1)
+                                val index =
+                                    (startIndex + (i * visibleRange / adjustedNumVerticalLines.toFloat())).toInt()
+                                        .coerceIn(0, solveTimes.size - 1)
                                 val x = (index * pointSpacing) + offsetX
 
                                 // Only draw if within visible range
@@ -227,9 +256,14 @@ fun TwistyTimerChart(
                                     drawContext.canvas.nativeCanvas.drawText(
                                         (index + 1).toString(), // +1 to start from 1 instead of 0
                                         x,
-                                        canvasHeight + 18, // Position further below the chart
+                                        canvasHeight + 26, // Position further below the chart
                                         android.graphics.Paint().apply {
-                                            color = android.graphics.Color.WHITE
+                                            color = android.graphics.Color.argb(
+                                                (axisLabelColor.alpha * 255).toInt(),
+                                                (axisLabelColor.red * 255).toInt(),
+                                                (axisLabelColor.green * 255).toInt(),
+                                                (axisLabelColor.blue * 255).toInt()
+                                            )
                                             textSize = 11.sp.toPx() // Slightly smaller for better fit
                                             textAlign = android.graphics.Paint.Align.CENTER
                                         }
@@ -270,8 +304,14 @@ fun TwistyTimerChart(
 
                                 // Complete the path by going down to the bottom of the chart,
                                 // then back to the start, and closing the path
-                                fillPath.lineTo(visibleLastX, canvasHeight - 1) // Subtract 1 to avoid overlap with bottom grid line
-                                fillPath.lineTo(offsetX, canvasHeight - 1) // Subtract 1 to avoid overlap with bottom grid line
+                                fillPath.lineTo(
+                                    visibleLastX,
+                                    canvasHeight - 1
+                                ) // Subtract 1 to avoid overlap with bottom grid line
+                                fillPath.lineTo(
+                                    offsetX,
+                                    canvasHeight - 1
+                                ) // Subtract 1 to avoid overlap with bottom grid line
                                 fillPath.close()
 
                                 // Draw the fill with slightly reduced alpha for better visibility of grid lines
@@ -322,8 +362,14 @@ fun TwistyTimerChart(
 
                                 // Complete the path by going down to the bottom of the chart,
                                 // then back to the start, and closing the path
-                                fillPath.lineTo(visibleLastX, canvasHeight - 1) // Subtract 1 to avoid overlap with bottom grid line
-                                fillPath.lineTo(offsetX, canvasHeight - 1) // Subtract 1 to avoid overlap with bottom grid line
+                                fillPath.lineTo(
+                                    visibleLastX,
+                                    canvasHeight - 1
+                                ) // Subtract 1 to avoid overlap with bottom grid line
+                                fillPath.lineTo(
+                                    offsetX,
+                                    canvasHeight - 1
+                                ) // Subtract 1 to avoid overlap with bottom grid line
                                 fillPath.close()
 
                                 // Draw the fill with slightly reduced alpha for better visibility of grid lines
@@ -374,8 +420,14 @@ fun TwistyTimerChart(
 
                                 // Complete the path by going down to the bottom of the chart,
                                 // then back to the start, and closing the path
-                                fillPath.lineTo(visibleLastX, canvasHeight - 1) // Subtract 1 to avoid overlap with bottom grid line
-                                fillPath.lineTo(offsetX, canvasHeight - 1) // Subtract 1 to avoid overlap with bottom grid line
+                                fillPath.lineTo(
+                                    visibleLastX,
+                                    canvasHeight - 1
+                                ) // Subtract 1 to avoid overlap with bottom grid line
+                                fillPath.lineTo(
+                                    offsetX,
+                                    canvasHeight - 1
+                                ) // Subtract 1 to avoid overlap with bottom grid line
                                 fillPath.close()
 
                                 // Draw the fill with slightly reduced alpha for better visibility of grid lines
@@ -452,7 +504,14 @@ private fun ChartLegendItem(
         Text(
             text = label,
             style = MaterialTheme.typography.bodySmall,
-            color = Color.White
+            color = when (LocalThemePreference.current) {
+                // For blue theme, use white for all labels
+                AppThemeType.BLUE -> Color.White
+                // For light theme, use black
+                AppThemeType.LIGHT -> Color.Black
+                // For dark theme, use white
+                else -> Color.White
+            }
         )
     }
 }

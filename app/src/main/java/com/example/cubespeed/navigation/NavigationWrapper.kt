@@ -1,20 +1,25 @@
 package com.example.cubespeed.navigation
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.Code
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import com.example.cubespeed.ui.screens.algorithms.OLLAlgorithmsScreen
+import com.example.cubespeed.ui.screens.algorithms.PLLAlgorithmsScreen
 import com.example.cubespeed.ui.screens.login.LoginScreen
 import com.example.cubespeed.ui.screens.register.RegisterScreen
 import com.example.cubespeed.ui.screens.main.MainTabsScreen
@@ -35,6 +40,9 @@ sealed class Route(val route: String) {
     object Statistics : Route("statistics")
     object Settings : Route("settings")
     object Algorithms : Route("algorithms")
+    object OLLAlgorithms : Route("oll_algorithms")
+    object PLLAlgorithms : Route("pll_algorithms")
+    object Game : Route("game")
 }
 
 /**
@@ -117,7 +125,6 @@ fun NavigationWrapper(
         composable(Route.MainTabs.route) {
             // Use the new MainTabsScreen composable
            MainTabsScreen(
-
                 navController = navController,
                 onLogout = { 
                     navController.navigate(Route.Login.route) {
@@ -128,6 +135,44 @@ fun NavigationWrapper(
                 onThemeChanged = onThemeChanged,
                 onTimerRunningChange = onTimerRunningChange
             )
+        }
+
+        // OLL Algorithms screen
+        composable(Route.OLLAlgorithms.route) {
+            OLLAlgorithmsScreen(navController)
+        }
+
+        // PLL Algorithms screen
+        composable(Route.PLLAlgorithms.route) {
+            PLLAlgorithmsScreen(navController)
+        }
+
+        // Game screen (placeholder for now)
+        composable(Route.Game.route) {
+            // This will be implemented later
+            Surface(
+                modifier = Modifier.fillMaxSize(),
+                color = MaterialTheme.colorScheme.background
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "Game Coming Soon!",
+                        style = MaterialTheme.typography.headlineMedium
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Button(onClick = { navController.popBackStack() }) {
+                        Text("Go Back")
+                    }
+                }
+            }
         }
     }
 }

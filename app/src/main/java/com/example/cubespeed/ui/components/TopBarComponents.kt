@@ -31,6 +31,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.cubespeed.ui.theme.isAppInLightTheme
+import com.example.cubespeed.ui.theme.LocalThemePreference
+import com.example.cubespeed.ui.theme.AppThemeType
 
 /**
  * A reusable top bar component that displays the cube type and tag.
@@ -122,7 +125,12 @@ fun CubeTopBar(
                 IconButton(onClick = onOptionsClick) {
                     Icon(
                         imageVector = Icons.Default.Tag,
-                        contentDescription = "Add Tag"
+                        contentDescription = "Add Tag",
+                        tint = when (LocalThemePreference.current) {
+                            AppThemeType.BLUE -> Color.White
+                            AppThemeType.LIGHT -> Color.Black
+                            else -> contentColor
+                        }
                     )
                 }
             }

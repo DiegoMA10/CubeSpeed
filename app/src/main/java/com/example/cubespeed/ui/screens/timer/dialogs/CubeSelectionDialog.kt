@@ -11,9 +11,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import com.example.cubespeed.ui.theme.dialogButtonTextColor
+import com.example.cubespeed.ui.theme.isAppInLightTheme
 
 /**
  * A dialog for selecting a cube type.
@@ -31,7 +34,9 @@ fun CubeSelectionDialog(
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = RoundedCornerShape(16.dp),
-            color = MaterialTheme.colorScheme.surface,
+            color = if (isAppInLightTheme) Color.White else MaterialTheme.colorScheme.surface,
+            tonalElevation = if (isAppInLightTheme) 4.dp else 0.dp,
+            shadowElevation = if (isAppInLightTheme) 4.dp else 0.dp,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp)
@@ -47,7 +52,7 @@ fun CubeSelectionDialog(
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
-                
+
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -68,17 +73,17 @@ fun CubeSelectionDialog(
                                 text = cubeType,
                                 style = MaterialTheme.typography.bodyLarge
                             )
-                            
+
                             // Show a checkmark for the currently selected cube type
                             if (cubeType == onCubeSelected.toString()) {
                                 Icon(
                                     imageVector = Icons.Default.Check,
                                     contentDescription = "Selected",
-                                    tint = MaterialTheme.colorScheme.primary
+                                    tint = if (isAppInLightTheme) Color.Gray else MaterialTheme.colorScheme.primary
                                 )
                             }
                         }
-                        
+
                         // Add a divider between items
                         if (cubeType != cubeTypes.last()) {
                             Divider(
@@ -90,7 +95,7 @@ fun CubeSelectionDialog(
                         }
                     }
                 }
-                
+
                 // Add a cancel button
                 TextButton(
                     onClick = onDismiss,
@@ -98,7 +103,7 @@ fun CubeSelectionDialog(
                         .align(Alignment.End)
                         .padding(top = 16.dp)
                 ) {
-                    Text("Cancel")
+                    Text("Cancel", color = dialogButtonTextColor)
                 }
             }
         }

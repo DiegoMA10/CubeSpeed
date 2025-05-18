@@ -13,10 +13,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.example.cubespeed.state.AppState
+import com.example.cubespeed.ui.theme.dialogButtonTextColor
+import com.example.cubespeed.ui.theme.isAppInLightTheme
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
 import com.google.firebase.firestore.firestore
@@ -37,13 +40,20 @@ suspend fun loadTags(onTagsLoaded: (List<String>) -> Unit) {
                 .await()
 
             val loadedTags = tagsSnapshot.documents.mapNotNull { it.getString("name") }
-            onTagsLoaded(loadedTags)
+            // Add the default "normal" tag to the list if it's not already included
+            val allTags = if (!loadedTags.contains("normal")) {
+                listOf("normal") + loadedTags
+            } else {
+                loadedTags
+            }
+            onTagsLoaded(allTags)
         } catch (e: Exception) {
-            // Handle error
-            onTagsLoaded(emptyList())
+            // Handle error - include at least the default tag
+            onTagsLoaded(listOf("normal"))
         }
     } else {
-        onTagsLoaded(emptyList())
+        // Return at least the default tag
+        onTagsLoaded(listOf("normal"))
     }
 }
 
@@ -146,7 +156,9 @@ fun TagInputDialog(
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = RoundedCornerShape(16.dp),
-            color = MaterialTheme.colorScheme.surface,
+            color = if (isAppInLightTheme) Color.White else MaterialTheme.colorScheme.surface,
+            tonalElevation = if (isAppInLightTheme) 4.dp else 0.dp,
+            shadowElevation = if (isAppInLightTheme) 4.dp else 0.dp,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp)
@@ -193,7 +205,8 @@ fun TagInputDialog(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Add,
-                                contentDescription = "Add Tag"
+                                contentDescription = "Add Tag",
+                                tint = if (isAppInLightTheme) Color.Gray else MaterialTheme.colorScheme.onSurface
                             )
                         }
                     }
@@ -224,26 +237,32 @@ fun TagInputDialog(
                             Row {
                                 // Show a checkmark for the currently selected tag
                                 if (tag == selectedTag) {
-                                    Icon(
-                                        imageVector = Icons.Default.Check,
-                                        contentDescription = "Selected",
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.padding(end = 8.dp)
-                                    )
+                                    Box(
+                                        modifier = Modifier.size(48.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Check,
+                                            contentDescription = "Selected",
+                                            tint = if (isAppInLightTheme) Color.Gray else MaterialTheme.colorScheme.primary
+                                        )
+                                    }
                                 }
 
-                                // Delete icon
-                                IconButton(
-                                    onClick = {
-                                        tagToDelete = tag
-                                        showDeleteConfirmation = true
+                                // Delete icon (hide for "normal" tag)
+                                if (tag != "normal") {
+                                    IconButton(
+                                        onClick = {
+                                            tagToDelete = tag
+                                            showDeleteConfirmation = true
+                                        }
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Delete,
+                                            contentDescription = "Delete Tag",
+                                            tint = if (isAppInLightTheme) Color.Gray else MaterialTheme.colorScheme.error
+                                        )
                                     }
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Delete,
-                                        contentDescription = "Delete Tag",
-                                        tint = MaterialTheme.colorScheme.error
-                                    )
                                 }
                             }
                         }
@@ -276,7 +295,7 @@ fun TagInputDialog(
                             }
                         }
                     ) {
-                        Text(if (showAddTagInput) "Cancel" else "Add Tag")
+                        Text(if (showAddTagInput) "Cancel" else "Add Tag", color = dialogButtonTextColor)
                     }
 
                     // Action buttons
@@ -284,18 +303,18 @@ fun TagInputDialog(
                         TextButton(
                             onClick = onDismiss
                         ) {
-                            Text("Cancel")
+                            Text("Cancel", color = dialogButtonTextColor)
                         }
 
                         Spacer(modifier = Modifier.width(8.dp))
 
-                        Button(
+                        TextButton(
                             onClick = {
                                 onTagConfirmed(selectedTag)
                                 AppState.selectedTag = selectedTag
                             }
                         ) {
-                            Text("Confirm")
+                            Text("Confirm", color = dialogButtonTextColor)
                         }
                     }
                 }
@@ -321,14 +340,14 @@ fun TagInputDialog(
                         showDeleteConfirmation = false
                     }
                 ) {
-                    Text("Delete")
+                    Text("Delete", color = dialogButtonTextColor)
                 }
             },
             dismissButton = {
                 TextButton(
                     onClick = { showDeleteConfirmation = false }
                 ) {
-                    Text("Cancel")
+                    Text("Cancel", color = dialogButtonTextColor)
                 }
             }
         )
