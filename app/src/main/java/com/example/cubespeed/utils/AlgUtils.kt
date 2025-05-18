@@ -7,7 +7,7 @@ import androidx.annotation.ColorInt
 /**
  * Utility class for cube algorithm visualization
  */
-object AlgUtils {
+object lgUtils {
     // Map of characters to colors for cube faces
     private val colorLetterMap = mapOf(
         'Y' to Color.parseColor("#FDD835"), // Yellow
@@ -24,17 +24,17 @@ object AlgUtils {
     // Format: 3 frontales + 3 izquierdos + 9 superiores + 3 derechos + 3 traseros
     private val ollCaseStates = mapOf(
         // Cross cases
-        "OLL 1" to "NYNYYYNNNNYNNNNYYYNYN",
-        "OLL 2" to "NYYYYYNNNNYNNNNNYNNYY",
-        "OLL 3" to "YYNNYNNNNNYNYNNYYNNYY",
-        "OLL 4" to "NYYYYNNNNNYNNNYNYNYYN",
-        "OLL 5" to "YYNNYYNNNNYYNYYYNNNNN",
-        "OLL 6" to "NNNYYNNYYNYYNNNNNYYYN",
-        "OLL 7" to "YNNNNNNYNYYNYNNYYNNYY",
-        "OLL 8" to "NNYYYNNYNNYYNNYNNNYYN",
+        "OLL 01" to "NYNYYYNNNNYNNNNYYYNYN",
+        "OLL 02" to "NYYYYYNNNNYNNNNNYNNYY",
+        "OLL 03" to "YYNNYNNNNNYNYNNYYNNYY",
+        "OLL 04" to "NYYYYNNNNNYNNNYNYNYYN",
+        "OLL 05" to "YYNNYYNNNNYYNYYYNNNNN",
+        "OLL 06" to "NNNYYNNYYNYYNNNNNYYYN",
+        "OLL 07" to "YNNNNNNYNYYNYNNYYNNYY",
+        "OLL 08" to "NNYYYNNYNNYYNNYNNNYYN",
 
         // Dot cases
-        "OLL 9" to "NYNYNNNNYYYNNYNNYYYNN",
+        "OLL 09" to "NYNYNNNNYYYNNYNNYYYNN",
         "OLL 10" to "YYNNNYNNYYYNNYNNYNNNY",
         "OLL 11" to "YYNNYNNNNNYYYYNYNNNNY",
         "OLL 12" to "NYNYYNNNYNYYNYNNNYYNN",
@@ -75,28 +75,28 @@ object AlgUtils {
         "OLL 37" to "NNNNNNYYNYYNNNYYYNYYN",
 
         // W shapes
-        "OLL 38" to "YYBYYYYYYYYYYYYYYYY",
-        "OLL 39" to "BYBYYYYYYYYYYYYYYYY",
-        "OLL 40" to "YYBYYYYYYYYYYYYYYYY",
+        "OLL 38" to "YNNNNNNYYYYNYNNNYYNYN",
+        "OLL 39" to "NNYNYYYYNNYNNYYNYNNNN",
+        "OLL 40" to "NNNYYNNYYNYNYYNNYNNNY",
 
         // Awkward shapes
-        "OLL 41" to "BYBYYYYYYYYYYYYYYYY",
-        "OLL 42" to "YYBYYYYYYYYYYYYYYYY",
-        "OLL 43" to "BYBYYYYYYYYYYYYYYYY",
-        "OLL 44" to "YYBYYYYYYYYYYYYYYYY",
-        "OLL 45" to "BYBYYYYYYYYYYYYYYYY",
-        "OLL 46" to "YYBYYYYYYYYYYYYYYYY",
-        "OLL 47" to "BYBYYYYYYYYYYYYYYYY",
-        "OLL 48" to "YYBYYYYYYYYYYYYYYYY",
-        "OLL 49" to "BYBYYYYYYYYYYYYYYYY",
-        "OLL 50" to "YYBYYYYYYYYYYYYYYYY",
-        "OLL 51" to "BYBYYYYYYYYYYYYYYYY",
-        "OLL 52" to "YYBYYYYYYYYYYYYYYYY",
-        "OLL 53" to "BYBYYYYYYYYYYYYYYYY",
-        "OLL 54" to "YYBYYYYYYYYYYYYYYYY",
-        "OLL 55" to "BYBYYYYYYYYYYYYYYYY",
-        "OLL 56" to "YYBYYYYYYYYYYYYYYYY",
-        "OLL 57" to "BYBYYYYYYYYYYYYYYYY"
+        "OLL 41" to "NYNNYNYNYNYYNYNNNNYNY",
+        "OLL 42" to "NYNNNNYNYYYNNYNNYNYNY",
+        "OLL 43" to "NYNNNNYNNYYNYYNYYYNNN",
+        "OLL 44" to "NYNYYYNNYNYYNYYNNNNNN",
+        "OLL 45" to "NYNYNYNNYYYYNNYNNNNYN",
+        "OLL 46" to "NNNNYNYYNNYNYYNYYYNNN",
+        "OLL 47" to "YNNNYNNYNNYYNNNYNYYYN",
+        "OLL 48" to "NNYYNYNYNYYNNNNNYNNYY",
+        "OLL 49" to "YYNNNNNNNYYNNYNYYYYNN",
+        "OLL 50" to "NYYYYYNNNNYYNYNNNNNNY",
+        "OLL 51" to "NYYYNYNNNYYYNNNNNNNYY",
+        "OLL 52" to "YNNNYNNYNNYNNYNYYYYNN",
+        "OLL 53" to "NYNYYYNNNNYYNYNYNYNNN",
+        "OLL 54" to "NNNYYYNYNNYYNNNYNYNYN",
+        "OLL 55" to "NNNYYYNYNNYNNYNYYYNNN",
+        "OLL 56" to "NYNYNYNNNYYYNNNYNYNYN",
+        "OLL 57" to "NYNNNNYNYYYYYNYNNNNYN"
     )
 
     /**
@@ -143,7 +143,7 @@ object AlgUtils {
      * @return A list of OLL case names
      */
     fun getAllOLLCases(): List<String> {
-        return (1..57).map { "OLL $it" }
+        return (1..57).map { "OLL ${if (it < 10) "0$it" else "$it"}" }
     }
 
     /**
@@ -154,63 +154,229 @@ object AlgUtils {
      */
     fun getDefaultAlgorithm(name: String): String {
         return when (name) {
-            "OLL 1" -> "R U2 R2 F R F' U2 R' F R F'"
-            "OLL 2" -> "F R U R' U' F' f R U R' U' f'"
-            "OLL 3" -> "f R U R' U' f' U' F R U R' U' F'"
-            "OLL 4" -> "f R U R' U' f' U F R U R' U' F'"
-            "OLL 5" -> "r' U2 R U R' U r"
-            "OLL 6" -> "r U2 R' U' R U' r'"
-            "OLL 7" -> "r U R' U R U2 r'"
-            "OLL 8" -> "r' U' R U' R' U2 r"
-            "OLL 9" -> "R U R' U' R' F R2 U R' U' F'"
-            "OLL 10" -> "R U R' U R' F R F' R U2 R'"
-            "OLL 11" -> "r U R' U R' F R F' R U2 r'"
-            "OLL 12" -> "M' R' U' R U' R' U2 R U' R r'"
-            "OLL 13" -> "F U R U' R2 F' R U R U' R'"
-            "OLL 14" -> "R' F R U R' F' R F U' F'"
-            "OLL 15" -> "r' U' r R' U' R U r' U r"
-            "OLL 16" -> "r U r' R U R' U' r U' r'"
-            "OLL 17" -> "R U R' U R' F R F' U2 R' F R F'"
-            "OLL 18" -> "r U R' U R U2 r2 U' R U' R' U2 r"
-            "OLL 19" -> "M U R U R' U' M' R' F R F'"
-            "OLL 20" -> "M U R U R' U' M2 U R U' r'"
-            "OLL 21" -> "R U2 R' U' R U R' U' R U' R'"
-            "OLL 22" -> "R U2 R2 U' R2 U' R2 U2 R"
-            "OLL 23" -> "R2 D R' U2 R D' R' U2 R'"
-            "OLL 24" -> "r U R' U' r' F R F'"
-            "OLL 25" -> "F' r U R' U' r' F R"
-            "OLL 26" -> "R U2 R' U' R U' R'"
-            "OLL 27" -> "R U R' U R U2 R'"
-            "OLL 28" -> "r U R' U' M U R U' R'"
-            "OLL 29" -> "M U R U R' U' R' F R F' M'"
-            "OLL 30" -> "F R' F R2 U' R' U' R U R' F2"
-            "OLL 31" -> "R' U' F U R U' R' F' R"
-            "OLL 32" -> "S R U R' U' R' F R f'"
-            "OLL 33" -> "R U R' U' R' F R F'"
-            "OLL 34" -> "R U R2 U' R' F R U R U' F'"
-            "OLL 35" -> "R U2 R2 F R F' R U2 R'"
-            "OLL 36" -> "L' U' L U' L' U L U L F' L' F"
-            "OLL 37" -> "F R U' R' U' R U R' F'"
-            "OLL 38" -> "R U R' U R U' R' U' R' F R F'"
-            "OLL 39" -> "L F' L' U' L U F U' L'"
-            "OLL 40" -> "R' F R U R' U' F' U R"
-            "OLL 41" -> "R U R' U R U2 R' F R U R' U' F'"
-            "OLL 42" -> "R' U' R U' R' U2 R F R U R' U' F'"
-            "OLL 43" -> "f' L' U' L U f"
-            "OLL 44" -> "f R U R' U' f'"
-            "OLL 45" -> "F R U R' U' F'"
-            "OLL 46" -> "R' U' R' F R F' U R"
-            "OLL 47" -> "F' L' U' L U L' U' L U F"
-            "OLL 48" -> "F R U R' U' R U R' U' F'"
-            "OLL 49" -> "r U' r2 U r2 U r2 U' r"
-            "OLL 50" -> "r' U r2 U' r2 U' r2 U r'"
-            "OLL 51" -> "f R U R' U' R U R' U' f'"
-            "OLL 52" -> "R U R' U R d' R U' R' F'"
-            "OLL 53" -> "r' U' R U' R' U R U' R' U2 r"
-            "OLL 54" -> "r U R' U R U' R' U R U2 r'"
-            "OLL 55" -> "R U2 R2 U' R U' R' U2 F R F'"
-            "OLL 56" -> "r U r' U R U' R' U R U' R' r U' r'"
-            "OLL 57" -> "R U R' U' M' U R U' r'"
+            "OLL 01" -> "R U2 R2' F R F' U2 R' F R F' \n" +
+                    "R U B' R B R2 U' R' F R F' \n" +
+                    "y R U' R2 D' r U' r' D R2 U R' \n" +
+                    "r U R' U R' r2 U' R' U R' r2 U2 r'"
+            "OLL 02" -> "F R U R' U' F' f R U R' U' f' \n" +
+                    "F R U R' U' S R U R' U' f' \n" +
+                    "y r U r' U2 R U2 R' U2 r U' r' \n" +
+                    "F R U r' U' R U R' M' U' F'"
+            "OLL 03" -> "y' f R U R' U' f' U' F R U R' U' F' \n" +
+                    "r' R2 U R' U r U2 r' U M' \n" +
+                    "r' R U R' F2 R U L' U L M' \n" +
+                    "y F U R U' R' F' U F R U R' U' F'"
+            "OLL 04" -> "y' f R U R' U' f' U F R U R' U' F' \n" +
+                    "M U' r U2 r' U' R U' R2 r \n" +
+                    "y F U R U' R' F' U' F R U R' U' F' \n" +
+                    "y2 r R2' U' R U' r' U2 r U' M"
+            "OLL 05" -> "r' U2 R U R' U r \n" +
+                    "y2 l' U2 L U L' U l \n" +
+                    "y2 R' F2 r U r' F R \n" +
+                    "L' U' L2 F' L' F2 U' F'"
+            "OLL 06" -> "r U2 R' U' R U' r' \n" +
+                    "y2 l U2 L' U' L U' l' \n" +
+                    "y2 R U R2 F R F2 U F \n" +
+                    "y' x' D R2 U' R' U R' D' x"
+            "OLL 07" -> "r U R' U R U2 r' \n" +
+                    "L' U2 L U2 L F' L' F \n" +
+                    "F R' F' R U2 R U2 R' \n" +
+                    "r U r' U R U' R' r U' r'"
+            "OLL 08" -> "y2 r' U' R U' R' U2 r \n" +
+                    "l' U' L U' L' U2 l \n" +
+                    "R U2 R' U2 R' F R F' \n" +
+                    "F' L F L' U2 L' U2 L"
+            "OLL 09" -> "y R U R' U' R' F R2 U R' U' F' \n" +
+                    "y2 R' U' R U' R' U R' F R F' U R \n" +
+                    "r' R2 U2 R' U' R U' R' U' M' \n" +
+                    "y' L' U' L U' L F' L' F L' U2 L"
+            "OLL 10" -> "R U R' U R' F R F' R U2 R' \n" +
+                    "R U R' y R' F R U' R' F' R \n" +
+                    "y2 L' U' L U L F' L2 U' L U F \n" +
+                    "R U R' y' r' U r U' r' U' r"
+            "OLL 11" -> "r' R2 U R' U R U2 R' U M' \n" +
+                    "M R U R' U R U2 R' U M' \n" +
+                    "r U R' U R' F R F' R U2 r' \n" +
+                    "y2 r U R' U R' F R F' R U2 r'"
+            "OLL 12" -> "F R U R' U' F' U F R U R' U' F' \n" +
+                    "y' r R2' U' R U' R' U2 R U' R r' \n" +
+                    "y M U2 R' U' R U' R' U2 R U M' \n" +
+                    "y M L' U' L U' L' U2 L U' M'"
+            "OLL 13" -> "r U' r' U' r U r' F' U F \n" +
+                    "F U R U' R2 F' R U R U' R' \n" +
+                    "F U R U2 R' U' R U R' F' \n" +
+                    "r U' r' U' r U r' y' R' U R"
+            "OLL 14" -> "R' F R U R' F' R F U' F' \n" +
+                    "R' F R U R' F' R y' R U' R' \n" +
+                    "F' U' r' F r2 U r' U' r' F r \n" +
+                    "r' U r U r' U' r y R U' R'"
+            "OLL 15" -> "r' U' r R' U' R U r' U r \n" +
+                    "y2 l' U' l L' U' L U l' U l \n" +
+                    "r' U' M' U' R U r' U r \n" +
+                    "y' R' U2 R U R' F U R U' R' F' R"
+            "OLL 16" -> "r U r' R U R' U' r U' r' \n" +
+                    "r U M U R' U' r U' r' \n" +
+                    "y2 R' F R U R' U' F' R U' R' U2 R \n" +
+                    "y2 l U l' L U L' U' l U' l'"
+            "OLL 17" -> "R U R' U R' F R F' U2 R' F R F' \n" +
+                    "f R U R' U' f' U' R U R' U' R' F R F' \n" +
+                    "y2 F R' F' R2 r' U R U' R' U' M' \n" +
+                    "y' F' r U r' U' S r' F r S'"
+            "OLL 18" -> "r U R' U R U2 r2 U' R U' R' U2 r \n" +
+                    "y R U2 R2 F R F' U2 M' U R U' r' \n" +
+                    "y2 F R U R' d R' U2 R' F R F' \n" +
+                    "y2 F R U R' U y' R' U2 R' F R F'"
+            "OLL 19" -> "M U R U R' U' M' R' F R F' \n" +
+                    "r' R U R U R' U' r R2' F R F' \n" +
+                    "r' U2 R U R' U r2 U2 R' U' R U' r' \n" +
+                    "R' U2 F R U R' U' F2 U2 F R"
+            "OLL 20" -> "M U R U R' U' M2 U R U' r' \n" +
+                    "r U R' U' M2 U R U' R' U' M' \n" +
+                    "M' U M' U M' U M' U' M' U M' U M' U M' \n" +
+                    "M' U' R' U' R U M2' U' R' U r"
+            "OLL 21" -> "y R U2 R' U' R U R' U' R U' R' \n" +
+                    "y F R U R' U' R U R' U' R U R' U' F' \n" +
+                    "R U R' U R U' R' U R U2 R' \n" +
+                    "R' U' R U' R' U R U' R' U2 R"
+            "OLL 22" -> "R U2 R2 U' R2 U' R2 U2 R \n" +
+                    "f R U R' U' f' F R U R' U' F' \n" +
+                    "R' U2 R2 U R2 U R2 U2 R' \n" +
+                    "R U2' R2' U' R2 U' R2' U2 R"
+            "OLL 23" -> "R2 D R' U2 R D' R' U2 R' \n" +
+                    "y2 R2 D' R U2 R' D R U2 R \n" +
+                    "y R U R' U' R U' R' U2 R U' R' U2 R U R' \n" +
+                    "R U R' U R U2 R2 U' R U' R' U2 R"
+            "OLL 24" -> "r U R' U' r' F R F' \n" +
+                    "y2 l' U' L U R U' r' F \n" +
+                    "y' x' R U R' D R U' R' D' x \n" +
+                    "r U R' U' L' U R U' x'"
+            "OLL 25" -> "y F' r U R' U' r' F R \n" +
+                    "R' F R B' R' F' R B \n" +
+                    "F R' F' r U R U' r' \n" +
+                    "y2 R U2 R' U' R U R' U' R U R' U' R U' R'"
+            "OLL 26" -> "y R U2 R' U' R U' R' \n" +
+                    "R' U' R U' R' U2 R \n" +
+                    "y2 L' U' L U' L' U2 L \n" +
+                    "R' U L U' R U L'"
+            "OLL 27" -> "R U R' U R U2 R' \n" +
+                    "y' R' U2 R U R' U R \n" +
+                    "R U' L' U R' U' L \n" +
+                    "y L' U2 L U L' U L"
+            "OLL 28" -> "r U R' U' M U R U' R' \n" +
+                    "y2 M' U M U2 M' U M \n" +
+                    "M U M' U2 M U M' \n" +
+                    "y' M' U' M U2 M' U' M"
+            "OLL 29" -> "M U R U R' U' R' F R F' M' \n" +
+                    "r2 D' r U r' D r2 U' r' U' r \n" +
+                    "y R U R' U' R U' R' F' U' F R U R' \n" +
+                    "y2 R' F R F' R U2 R' U' F' U' F"
+            "OLL 30" -> "M U' L' U' L U L F' L' F M' \n" +
+                    "y' r' D' r U' r' D r2 U' r' U r U r' \n" +
+                    "y2 F R' F R2 U' R' U' R U R' F2 \n" +
+                    "R2 U R' B' R U' R2 U R B R'"
+            "OLL 31" -> "R' U' F U R U' R' F' R \n" +
+                    "y2 S' L' U' L U L F' L' f \n" +
+                    "y' F R' F' R U R U R' U' R U' R' \n" +
+                    "y S R U R' U' f' U' F"
+            "OLL 32" -> "S R U R' U' R' F R f' \n" +
+                    "R U B' U' R' U R B R' \n" +
+                    "y2 L U F' U' L' U L F L' \n" +
+                    "R d L' d' R' U l U l'"
+            "OLL 33" -> "R U R' U' R' F R F' \n" +
+                    "F R U' R' U R U R' F' \n" +
+                    "y2 L' U' L U L F' L' F \n" +
+                    "y' r' U' r' D' r U r' D r2"
+            "OLL 34" -> "y2 R U R' U' B' R' F R F' B \n" +
+                    "y2 R U R2 U' R' F R U R U' F' \n" +
+                    "F R U R' U' R' F' r U R U' r' \n" +
+                    "y2 R U R' U' y' r' U' R U M'"
+            "OLL 35" -> "R U2 R2' F R F' R U2 R' \n" +
+                    "f R U R' U' f' R U R' U R U2 R' \n" +
+                    "y' R U2 R' U' R U' R' U2 F R U R' U' F' \n" +
+                    "R U2 R' U' y' r' U r U' r' U' r"
+            "OLL 36" -> "y2 L' U' L U' L' U L U L F' L' F \n" +
+                    "R' U' R U' R' U R U l U' R' U x \n" +
+                    "R' U' R U' R' U R U R y R' F' R \n" +
+                    "R U2 r D r' U2 r D' R' r'"
+            "OLL 37" -> "F R U' R' U' R U R' F' \n" +
+                    "F R' F' R U R U' R' \n" +
+                    "R' F R F' U' F' U F \n" +
+                    "y' R U2 R' F R' F' R2 U2 R'"
+            "OLL 38" -> "R U R' U R U' R' U' R' F R F' \n" +
+                    "L' U' L F L' U' L U L F' L' U L F' L' F"
+            "OLL 39" -> "y L F' L' U' L U F U' L' \n" +
+                    "y' R U R' F' U' F U R U2 R' \n" +
+                    "y' R B' R' U' R U B U' R' \n" +
+                    "R' r' D' r U' r' D r U R"
+            "OLL 40" -> "y R' F R U R' U' F' U R \n" +
+                    "R r D r' U r D' r' U' R' \n" +
+                    "y' f R' F' R U R U' R' S' \n" +
+                    "y' F R U R' U' F' R U R' U R U2 R'"
+            "OLL 41" -> "y2 R U R' U R U2' R' F R U R' U' F' \n" +
+                    "R U' R' U2 R U y R U' R' U' F' \n" +
+                    "y' L F' L' F L F' L' F L' U' L U L' U' L \n" +
+                    "f R U R' U' f' U' R U R' U R U2 R'"
+            "OLL 42" -> "R' U' R U' R' U2 R F R U R' U' F' \n" +
+                    "y R' F R F' R' F R F' R U R' U' R U R' \n" +
+                    "L' U L U2 L' U' y' L' U L U F \n" +
+                    "R' U R U2 R' U' F' U F U R"
+            "OLL 43" -> "f' L' U' L U f \n" +
+                    "y2 F' U' L' U L F \n" +
+                    "y R' U' F' U F R \n" +
+                    "y2 R' U' F R' F' R U R"
+            "OLL 44" -> "f R U R' U' f' \n" +
+                    "y2 F U R U' R' F' \n" +
+                    "y2 r U x' R U' R' U x U' r' \n" +
+                    "y' L d R U' R' F'"
+            "OLL 45" -> "F R U R' U' F' \n" +
+                    "y2 f U R U' R' f' \n" +
+                    "y2 F' L' U' L U F \n" +
+                    "F R2 D R' U R D' R2 U' F'"
+            "OLL 46" -> "R' U' R' F R F' U R \n" +
+                    "y F R U R' y' R' U R U2 R' \n" +
+                    "y2 r' F' L' U L U' F r"
+            "OLL 47" -> "F' L' U' L U L' U' L U F \n" +
+                    "R' U' R' F R F' R' F R F' U R \n" +
+                    "R' U' l' U R U' R' U R U' x' U R \n" +
+                    "y2 B' R' U' R U R' U' R U B"
+            "OLL 48" -> "F R U R' U' R U R' U' F' \n" +
+                    "R U2 R' U' R U R' U2 R' F R F'"
+            "OLL 49" -> "y2 r U' r2 U r2 U r2 U' r \n" +
+                    "l U' l2 U l2 U l2 U' l \n" +
+                    "R B' R2 F R2 B R2 F' R \n" +
+                    "y2 R' F R' F' R2 U2 B' R B R'"
+            "OLL 50" -> "r' U r2 U' r2' U' r2 U r' \n" +
+                    "y2 R' F R2 B' R2 F' R2 B R' \n" +
+                    "y' R U2 R' U' R U' R' F R U R' U' F' \n" +
+                    "y2 l' U l2 U' l2 U' l2 U l'"
+            "OLL 51" -> "f R U R' U' R U R' U' f' \n" +
+                    "y2 F U R U' R' U R U' R' F' \n" +
+                    "y' R' U' R' F R F' R U' R' U2 R \n" +
+                    "y2 f' L' U' L U L' U' L U f"
+            "OLL 52" -> "R U R' U R d' R U' R' F' \n" +
+                    "R' U' R U' R' d R' U R B \n" +
+                    "R' U' R U' R' U F' U F R \n" +
+                    "R U R' U R U' y R U' R' F'"
+            "OLL 53" -> "r' U' R U' R' U R U' R' U2 r \n" +
+                    "y2 l' U' L U' L' U L U' L' U2 l \n" +
+                    "y r' U2 R U R' U' R U R' U r \n" +
+                    "y' l' U2 L U L' U' L U L' U l"
+            "OLL 54" -> "r U R' U R U' R' U R U2 r' \n" +
+                    "y' r U2 R' U' R U R' U' R U' r' \n" +
+                    "F' L' U' L U L' U L U' L' U' L F \n" +
+                    "y2 F R' F' R U2 F2 L F L' F"
+            "OLL 55" -> "R U2 R2 U' R U' R' U2 F R F' \n" +
+                    "y R' F R U R U' R2 F' R2 U' R' U R U R' \n" +
+                    "r U2 R2 F R F' U2 r' F R F' \n" +
+                    "R' U2 R2 U R' U R U2 y R' F' R"
+            "OLL 56" -> "r U r' U R U' R' U R U' R' r U' r' \n" +
+                    "F R U R' U' R F' r U R' U' r' \n" +
+                    "y f R U R' U' f' F R U R' U' R U R' U' F' \n" +
+                    "r' U' r U' R' U R U' R' U R r' U r"
+            "OLL 57" -> "R U R' U' M' U R U' r' \n" +
+                    "M' U M' U M' U2 M U M U M \n" +
+                    "R U R' U' r R' U R U' r' \n" +
+                    "M' U M' U M' U M' U2 M' U M' U M' U M'"
             else -> "Algorithm not available"
         }
     }

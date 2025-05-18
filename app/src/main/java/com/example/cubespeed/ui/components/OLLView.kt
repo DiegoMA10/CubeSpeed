@@ -103,6 +103,6 @@ fun OLLView(
 @Composable
 fun PreviewTwistyOLL() {
     // Using the getCaseState method to get a 21-character string
-    val state = AlgUtils.getCaseState(LocalContext.current, "OLL", "OLL 1")
+    val state = AlgUtils.getCaseState(LocalContext.current, "OLL", "OLL 01")
     OLLView(state = state, size = 200.dp, gap = 6.dp, cornerRadius = 7.dp)
 }
