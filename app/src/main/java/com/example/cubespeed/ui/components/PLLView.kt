@@ -3,9 +3,7 @@ package com.example.cubespeed.ui.components
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -22,10 +20,11 @@ import androidx.compose.ui.unit.dp
 import com.example.cubespeed.utils.AlgUtils
 
 /**
- * OLL preview inspirado en Twisty Timer:
+ * PLL preview inspirado en Twisty Timer:
  * - Central 3×3
  * - Franjas auxiliares rectangulares en cada lado
  * - Diseño compacto con margen extra en top y left
+ * - Muestra una imagen de PLL superpuesta sobre el canvas
  *
  * @param state Cadena de 21 caracteres del cubo:
  *   - 3 stickers frontales [0-2]
@@ -33,21 +32,36 @@ import com.example.cubespeed.utils.AlgUtils
  *   - 9 stickers superiores [6-14]
  *   - 3 stickers derechos [15-17]
  *   - 3 stickers traseros [18-20]
+ * @param pllCase Nombre del caso PLL a mostrar (ej: "aa_perm")
  * @param size Tamaño total del componente
  * @param gap Espacio entre stickers
  * @param cornerRadius Radio de esquinas
  */
 @Composable
-fun OLLView(
+fun PLLView(
     state: String,
+    pllCase: String,
     size: Dp = 120.dp,
     gap: Dp = 2.dp,
     cornerRadius: Dp = 2.dp
 ) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally
+    // Get PLL image resource
+    val context = LocalContext.current
+    val resourceId = context.resources.getIdentifier(
+        "pll_${pllCase}",
+        "drawable",
+        context.packageName
+    )
+
+    // Box to overlay PLL image on top of canvas
+    Box(
+        contentAlignment = Alignment.Center
     ) {
-        Canvas(modifier = Modifier.size(size).background(Color.DarkGray, shape = androidx.compose.foundation.shape.RoundedCornerShape(15.dp))) {
+        // Canvas for cube visualization
+        Canvas(
+            modifier = Modifier.size(size)
+                .background(Color.DarkGray, shape = androidx.compose.foundation.shape.RoundedCornerShape(15.dp))
+        ) {
             val px = size.toPx()
             val g = gap.toPx()
             // proporción de auxiliares respecto a sticker
@@ -75,24 +89,24 @@ fun OLLView(
             // Top auxiliaries (frontales) [0-2]
             for (i in 0..2) {
                 val x = start + i * (cell + g)
-                drawCell(x, g/2+margin, cell, aux, i)
+                drawCell(x, g / 2 + margin, cell, aux, i)
             }
             // Bottom auxiliaries (traseros) [18-20]
             for (i in 0..2) {
                 val x = start + i * (cell + g)
-                val y = start + 3 * (cell + g) -g/2+ margin
+                val y = start + 3 * (cell + g) - g / 2 + margin
                 drawCell(x, y, cell, aux, 18 + i)
             }
 
             // Left auxiliaries (izquierdos) [3-5]
             for (i in 0..2) {
                 val y = start + i * (cell + g)
-                drawCell(g / 2+ margin, y, aux, cell, 3 + i)
+                drawCell(g / 2 + margin, y, aux, cell, 3 + i)
             }
             // Right auxiliaries (derechos) [15-17]
             for (i in 0..2) {
                 val y = start + i * (cell + g)
-                val x = start + 3 * (cell + g)  -g/2+ margin
+                val x = start + 3 * (cell + g) - g / 2 + margin
                 drawCell(x, y, aux, cell, 15 + i)
             }
 
@@ -106,31 +120,42 @@ fun OLLView(
                 }
             }
         }
+
+        // Display PLL image on top of the canvas if resource exists
+        if (resourceId != 0) {
+            Image(
+                painter = painterResource(id = resourceId),
+                contentDescription = "PLL $pllCase",
+                modifier = Modifier.size(size)
+            )
+        }
     }
 }
 
 @Preview
 @Composable
-fun PreviewTwistyOLL() {
+fun PreviewPLLView() {
     // Using the getCaseState method to get a 21-character string
     val state = AlgUtils.getCaseState(LocalContext.current, "OLL", "OLL 01")
-    OLLView(
-        state = state, 
-        size = 200.dp, 
-        gap = 6.dp, 
+    PLLView(
+        state = state,
+        pllCase = "t_perm",
+        size = 200.dp,
+        gap = 6.dp,
         cornerRadius = 7.dp
     )
 }
 
 @Preview
 @Composable
-fun PreviewTwistyOLLWithoutPLL() {
+fun PreviewPLLViewWithDifferentCase() {
     // Using the getCaseState method to get a 21-character string
     val state = AlgUtils.getCaseState(LocalContext.current, "OLL", "OLL 01")
-    OLLView(
-        state = state, 
-        size = 200.dp, 
-        gap = 6.dp, 
+    PLLView(
+        state = state,
+        pllCase = "aa_perm",
+        size = 200.dp,
+        gap = 6.dp,
         cornerRadius = 7.dp
     )
 }

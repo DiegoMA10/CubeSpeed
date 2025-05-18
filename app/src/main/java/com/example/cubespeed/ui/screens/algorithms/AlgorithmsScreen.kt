@@ -20,23 +20,35 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.cubespeed.ui.components.OLLView
+import com.example.cubespeed.ui.components.PLLView
 import com.example.cubespeed.utils.AlgUtils
 
 /**
- * Screen that displays OLL algorithms in a style similar to Twisty Timer
+ * Screen that displays OLL and PLL algorithms in a style similar to Twisty Timer
  */
 @Composable
 fun AlgorithmsScreen() {
-    var showAlgorithmDialog by remember { mutableStateOf(false) }
-    var selectedAlgorithm by remember { mutableStateOf<String?>(null) }
+    var showOLLAlgorithmDialog by remember { mutableStateOf(false) }
+    var selectedOLLAlgorithm by remember { mutableStateOf<String?>(null) }
+    var showPLLAlgorithmDialog by remember { mutableStateOf(false) }
+    var selectedPLLAlgorithm by remember { mutableStateOf<String?>(null) }
     val ollCases = remember { AlgUtils.getAllOLLCases() }
+    val pllCases = remember { AlgUtils.getAllPLLCases() }
     val context = LocalContext.current
 
-    // Show algorithm detail dialog when an algorithm is selected
-    if (showAlgorithmDialog && selectedAlgorithm != null) {
-        AlgorithmDetailDialog(
-            caseName = selectedAlgorithm!!,
-            onDismiss = { showAlgorithmDialog = false }
+    // Show OLL algorithm detail dialog when an OLL algorithm is selected
+    if (showOLLAlgorithmDialog && selectedOLLAlgorithm != null) {
+        OLLAlgorithmDetailDialog(
+            caseName = selectedOLLAlgorithm!!,
+            onDismiss = { showOLLAlgorithmDialog = false }
+        )
+    }
+
+    // Show PLL algorithm detail dialog when a PLL algorithm is selected
+    if (showPLLAlgorithmDialog && selectedPLLAlgorithm != null) {
+        PLLAlgorithmDetailDialog(
+            caseName = selectedPLLAlgorithm!!,
+            onDismiss = { showPLLAlgorithmDialog = false }
         )
     }
 
@@ -54,13 +66,13 @@ fun AlgorithmsScreen() {
 
         // Grid of OLL cases with improved styling
         LazyVerticalGrid(
-            columns = GridCells.Fixed(4),
+            columns = GridCells.Fixed(3),
             contentPadding = PaddingValues(4.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier
                 .fillMaxWidth()
-                .height(400.dp) // Reduced height to make it more compact
+                .height(350.dp) // Increased height for larger cards
         ) {
             items(ollCases) { caseName ->
                 val caseState = AlgUtils.getCaseState(context, "OLL", caseName)
@@ -68,13 +80,12 @@ fun AlgorithmsScreen() {
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .aspectRatio(0.9f)
+                        .aspectRatio(0.8f) // Taller cards
                         .clickable {
-                            selectedAlgorithm = caseName
-                            showAlgorithmDialog = true
-                        }
-                        .shadow(2.dp, RoundedCornerShape(8.dp)),
-                    shape = RoundedCornerShape(8.dp),
+                            selectedOLLAlgorithm = caseName
+                            showOLLAlgorithmDialog = true
+                        },
+                    shape = RoundedCornerShape(12.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surface
                     )
@@ -82,41 +93,135 @@ fun AlgorithmsScreen() {
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(4.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
+                            .padding(1.dp), // Reduced padding
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        // OLL view takes most of the space
-                        Box(
-                            modifier = Modifier
-                                .weight(0.7f)
-                                .padding(2.dp)
-                        ) {
-                            OLLView(
-                                state = caseState,
-                                size = 60.dp,
-                                gap = 2.dp,
-                                cornerRadius = 3.dp
-                            )
-                        }
-
-                        // Case name at the bottom with colored background
+                        // Case name at the top with colored background
                         Surface(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(0.3f),
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
-                            shape = RoundedCornerShape(bottomStart = 8.dp, bottomEnd = 8.dp)
+                                .fillMaxWidth(),
+                            shape = RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp)
                         ) {
                             Text(
                                 text = caseName,
-                                fontSize = 12.sp,
+                                fontSize = 14.sp, // Slightly larger font
                                 fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.onPrimary,
+                                color = Color.Black,
                                 textAlign = TextAlign.Center,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(vertical = 2.dp)
+                            )
+                        }
+
+                        // Divider between title and image
+                        HorizontalDivider(
+                            modifier = Modifier
+                                .fillMaxWidth(),
+                            thickness = 1.dp,
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                        )
+
+                        // OLL view takes most of the space
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            OLLView(
+                                state = caseState,
+                                size = 80.dp, // Larger size
+                                gap = 3.dp,
+                                cornerRadius = 4.dp
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // Add spacing between OLL and PLL sections
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // PLL Algorithms section
+        Text(
+            text = "PLL Algorithms",
+            fontSize = 24.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+
+        // Grid of PLL cases with improved styling
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(3),
+            contentPadding = PaddingValues(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(350.dp)
+        ) {
+            items(pllCases) { caseName ->
+                val caseState = AlgUtils.getCaseState(context, "PLL", caseName)
+
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(0.8f) // Taller cards
+                        .clickable {
+                            selectedPLLAlgorithm = caseName
+                            showPLLAlgorithmDialog = true
+                        },// Increased shadow and corner radius
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(1.dp), // Increased padding
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        // Case name at the top with colored background
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth(),
+                            shape = RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp)
+                        ) {
+                            Text(
+                                text = caseName,
+                                fontSize = 14.sp, // Slightly larger font
+                                fontWeight = FontWeight.Medium,
+                                color = Color.Black,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+
+                            )
+                        }
+
+                        // Divider between title and image
+                        HorizontalDivider(
+                            modifier = Modifier
+                                .fillMaxWidth(),
+                            thickness = 1.dp,
+                            color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f)
+                        )
+
+                        // PLL view takes most of the space
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            PLLView(
+                                state = caseState,
+                                pllCase = caseName,
+                                size = 80.dp, // Larger size
+                                gap = 3.dp,
+                                cornerRadius = 4.dp
                             )
                         }
                     }
@@ -133,13 +238,16 @@ fun AlgorithmsScreen() {
  * @param onDismiss Callback for when the dialog is dismissed
  */
 @Composable
-fun AlgorithmDetailDialog(
+fun OLLAlgorithmDetailDialog(
     caseName: String,
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
     val caseState = AlgUtils.getCaseState(context, "OLL", caseName)
     val algorithm = AlgUtils.getDefaultAlgorithm(caseName)
+
+    // Split algorithm by line breaks
+    val algorithmLines = algorithm.split("\n")
 
     Dialog(onDismissRequest = onDismiss) {
         Box(
@@ -151,7 +259,7 @@ fun AlgorithmDetailDialog(
             // White card in the center
             Card(
                 modifier = Modifier
-                    .width(320.dp)
+                    .width(340.dp) // Wider card
                     .clickable(enabled = false) { /* Prevent clicks from passing through */ },
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(
@@ -174,42 +282,189 @@ fun AlgorithmDetailDialog(
                     ) {
                         Text(
                             text = caseName,
-                            fontSize = 20.sp,
+                            fontSize = 22.sp, // Larger font
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onPrimary,
                             textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(vertical = 8.dp)
+                            modifier = Modifier.padding(vertical = 10.dp)
                         )
                     }
 
                     // Display the OLL view with a larger size
-                    Box(
+                    Surface(
                         modifier = Modifier
-                            .padding(8.dp)
+                            .fillMaxWidth()
+                            .padding(bottom = 16.dp),
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                        shape = RoundedCornerShape(16.dp)
                     ) {
-                        OLLView(
-                            state = caseState,
-                            size = 200.dp,
-                            gap = 5.dp,
-                            cornerRadius = 5.dp
-                        )
+                        Box(
+                            modifier = Modifier
+                                .padding(16.dp)
+                                .fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            OLLView(
+                                state = caseState,
+                                size = 240.dp, // Much larger size
+                                gap = 6.dp,
+                                cornerRadius = 6.dp
+                            )
+                        }
                     }
-
-                    Spacer(modifier = Modifier.height(16.dp))
 
                     // Display the algorithm with better formatting
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
-                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), // Same background color as image
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            horizontalAlignment = Alignment.Start
+                        ) {
+                            Text(
+                                text = "Solutions:",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.padding(bottom = 8.dp)
+                            )
+
+                            // Display each algorithm line separately
+                            algorithmLines.forEach { line ->
+                                if (line.isNotEmpty()) {
+                                    Text(
+                                        text = line,
+                                        fontSize = 14.sp, // Smaller font
+                                        fontFamily = FontFamily.Monospace,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.padding(vertical = 2.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Dialog that displays details about a PLL algorithm.
+ *
+ * @param caseName The name of the PLL case
+ * @param onDismiss Callback for when the dialog is dismissed
+ */
+@Composable
+fun PLLAlgorithmDetailDialog(
+    caseName: String,
+    onDismiss: () -> Unit
+) {
+    val context = LocalContext.current
+    val caseState = AlgUtils.getCaseState(context, "PLL", caseName)
+    val algorithm = AlgUtils.getDefaultAlgorithm(caseName)
+
+    // Split algorithm by line breaks
+    val algorithmLines = algorithm.split("\n")
+
+    Dialog(onDismissRequest = onDismiss) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .clickable { onDismiss() },
+            contentAlignment = Alignment.Center
+        ) {
+            // White card in the center
+            Card(
+                modifier = Modifier
+                    .width(340.dp) // Wider card
+                    .clickable(enabled = false) { /* Prevent clicks from passing through */ },
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = Color.White
+                )
+            ) {
+                Column(
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    // Case name with colored background
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 16.dp),
+                        color = MaterialTheme.colorScheme.secondary, // Using secondary color for PLL
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         Text(
-                            text = algorithm.ifEmpty { "No algorithm available" },
-                            fontSize = 18.sp,
-                            fontFamily = FontFamily.Monospace,
+                            text = caseName,
+                            fontSize = 22.sp, // Larger font
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSecondary,
                             textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(16.dp)
+                            modifier = Modifier.padding(vertical = 10.dp)
                         )
+                    }
+
+                    // Display the PLL view with a larger size
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 16.dp),
+                        color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f), // Using secondary color for PLL
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .padding(16.dp)
+                                .fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            PLLView(
+                                state = caseState,
+                                pllCase = caseName,
+                                size = 240.dp, // Much larger size
+                                gap = 6.dp,
+                                cornerRadius = 6.dp
+                            )
+                        }
+                    }
+
+                    // Display the algorithm with better formatting
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f), // Same background color as image
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            horizontalAlignment = Alignment.Start
+                        ) {
+                            Text(
+                                text = "Solutions:",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.padding(bottom = 8.dp)
+                            )
+
+                            // Display each algorithm line separately
+                            algorithmLines.forEach { line ->
+                                if (line.isNotEmpty()) {
+                                    Text(
+                                        text = line,
+                                        fontSize = 14.sp, // Smaller font
+                                        fontFamily = FontFamily.Monospace,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.padding(vertical = 2.dp)
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
