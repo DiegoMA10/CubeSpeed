@@ -1,0 +1,123 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="1080dp"
+    android:height="1920dp"
+    android:viewportWidth="1080"
+    android:viewportHeight="1920">
+    
+    <!-- Background gradient -->
+    <path
+        android:pathData="M0,0h1080v1920h-1080z"
+        android:fillColor="#F5F5F5"/>
+    
+    <!-- Scattered cube elements -->
+    <!-- Top left cube -->
+    <path
+        android:pathData="M100,100h150v150h-150z"
+        android:fillColor="#1E88E5"/>
+    <path
+        android:pathData="M250,100h150v150h-150z"
+        android:fillColor="#0D47A1"/>
+    <path
+        android:pathData="M100,250h150v150h-150z"
+        android:fillColor="#2196F3"/>
+    <path
+        android:pathData="M250,250h150v150h-150z"
+        android:fillColor="#1976D2"/>
+    
+    <!-- Bottom right cube -->
+    <path
+        android:pathData="M700,1500h150v150h-150z"
+        android:fillColor="#4CAF50"/>
+    <path
+        android:pathData="M850,1500h150v150h-150z"
+        android:fillColor="#388E3C"/>
+    <path
+        android:pathData="M700,1650h150v150h-150z"
+        android:fillColor="#66BB6A"/>
+    <path
+        android:pathData="M850,1650h150v150h-150z"
+        android:fillColor="#2E7D32"/>
+    
+    <!-- Middle right cube -->
+    <path
+        android:pathData="M800,800h100v100h-100z"
+        android:fillColor="#FFC107"/>
+    <path
+        android:pathData="M900,800h100v100h-100z"
+        android:fillColor="#FFA000"/>
+    <path
+        android:pathData="M800,900h100v100h-100z"
+        android:fillColor="#FFCA28"/>
+    <path
+        android:pathData="M900,900h100v100h-100z"
+        android:fillColor="#FF8F00"/>
+    
+    <!-- Top right cube -->
+    <path
+        android:pathData="M850,200h80v80h-80z"
+        android:fillColor="#F44336"/>
+    <path
+        android:pathData="M930,200h80v80h-80z"
+        android:fillColor="#D32F2F"/>
+    <path
+        android:pathData="M850,280h80v80h-80z"
+        android:fillColor="#EF5350"/>
+    <path
+        android:pathData="M930,280h80v80h-80z"
+        android:fillColor="#C62828"/>
+    
+    <!-- Bottom left cube -->
+    <path
+        android:pathData="M150,1600h120v120h-120z"
+        android:fillColor="#9C27B0"/>
+    <path
+        android:pathData="M270,1600h120v120h-120z"
+        android:fillColor="#7B1FA2"/>
+    <path
+        android:pathData="M150,1720h120v120h-120z"
+        android:fillColor="#BA68C8"/>
+    <path
+        android:pathData="M270,1720h120v120h-120z"
+        android:fillColor="#6A1B9A"/>
+    
+    <!-- Middle left cube -->
+    <path
+        android:pathData="M200,900h90v90h-90z"
+        android:fillColor="#3F51B5"/>
+    <path
+        android:pathData="M290,900h90v90h-90z"
+        android:fillColor="#303F9F"/>
+    <path
+        android:pathData="M200,990h90v90h-90z"
+        android:fillColor="#5C6BC0"/>
+    <path
+        android:pathData="M290,990h90v90h-90z"
+        android:fillColor="#283593"/>
+    
+    <!-- Floating cube pieces -->
+    <path
+        android:pathData="M500,400h120v120h-120z"
+        android:fillColor="#FF5722"
+        android:rotation="15"/>
+    
+    <path
+        android:pathData="M400,1200h100v100h-100z"
+        android:fillColor="#00BCD4"
+        android:rotation="-10"/>
+    
+    <path
+        android:pathData="M600,1400h130v130h-130z"
+        android:fillColor="#8BC34A"
+        android:rotation="25"/>
+    
+    <path
+        android:pathData="M550,700h110v110h-110z"
+        android:fillColor="#FFEB3B"
+        android:rotation="-20"/>
+    
+    <!-- Semi-transparent overlay to blend with content -->
+    <path
+        android:pathData="M0,0h1080v1920h-1080z"
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.7"/>
+</vector>

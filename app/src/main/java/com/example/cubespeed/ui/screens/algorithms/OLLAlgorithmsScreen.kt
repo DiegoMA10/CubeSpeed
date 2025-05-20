@@ -204,76 +204,67 @@ private fun OLLAlgorithmDetailDialogImpl(
                         .fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // Case name with colored background
-                    Surface(
+                    // Case name without background
+                    Text(
+                        text = caseName,
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp)
+                    )
+
+                    // Divider line after title
+                    HorizontalDivider(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(bottom = 16.dp),
-                        color = MaterialTheme.colorScheme.primary,
-                        shape = RoundedCornerShape(8.dp)
+                        thickness = 1.dp,
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                    )
+
+                    // Display the OLL view with a smaller size
+                    Box(
+                        modifier = Modifier
+                            .padding(bottom = 16.dp)
+                            .fillMaxWidth(),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = caseName,
-                            fontSize = 22.sp, // Larger font
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(vertical = 10.dp)
+                        OLLView(
+                            state = caseState,
+                            size = 180.dp, // Smaller size
+                            gap = 5.dp,
+                            cornerRadius = 5.dp
                         )
                     }
 
-                    // Display the OLL view with a larger size
-                    Surface(
+                    // Display the algorithm with better formatting without background
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(bottom = 16.dp),
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                        shape = RoundedCornerShape(16.dp)
+                            .padding(horizontal = 8.dp),
+                        horizontalAlignment = Alignment.Start
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .padding(16.dp)
-                                .fillMaxWidth(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            OLLView(
-                                state = caseState,
-                                size = 240.dp, // Much larger size
-                                gap = 6.dp,
-                                cornerRadius = 6.dp
-                            )
-                        }
-                    }
+                        Text(
+                            text = "Solutions:",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
 
-                    // Display the algorithm with better formatting
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), // Same background color as image
-                        shape = RoundedCornerShape(16.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(16.dp),
-                            horizontalAlignment = Alignment.Start
-                        ) {
-                            Text(
-                                text = "Solutions:",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.padding(bottom = 8.dp)
-                            )
-
-                            // Display each algorithm line separately
-                            algorithmLines.forEach { line ->
-                                if (line.isNotEmpty()) {
-                                    Text(
-                                        text = line,
-                                        fontSize = 14.sp, // Smaller font
-                                        fontFamily = FontFamily.Monospace,
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        modifier = Modifier.padding(vertical = 2.dp)
-                                    )
-                                }
+                        // Display each algorithm line separately
+                        algorithmLines.forEach { line ->
+                            if (line.isNotEmpty()) {
+                                Text(
+                                    text = line,
+                                    fontSize = 12.sp, // Smaller font to fit on one line
+                                    fontFamily = FontFamily.Monospace,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.padding(vertical = 2.dp)
+                                )
                             }
                         }
                     }
