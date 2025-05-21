@@ -12,7 +12,20 @@
           "package_name": "com.example.cubespeed"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "133521252013-6hge2u05uaavue4nsa1o8rdc6q7ovar6.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.cubespeed",
+            "certificate_hash": "d2045401ec916c8aa52758f2b63500f9f2b440bd"
+          }
+        },
+        {
+          "client_id": "133521252013-m54d42bmbbtgolvjasrhohtcbuh6hs57.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDwYMHz8d38evKkNElILW10Tdurcpr_1fs"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "133521252013-m54d42bmbbtgolvjasrhohtcbuh6hs57.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

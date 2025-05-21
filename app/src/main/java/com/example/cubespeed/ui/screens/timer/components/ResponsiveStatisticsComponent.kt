@@ -85,39 +85,53 @@ fun ResponsiveStatisticsComponent(
 
     // Effect to listen for changes to the stats document
     DisposableEffect(userId, selectedCubeType, selectedTag) {
-        val cubeType = CubeType.fromDisplayName(selectedCubeType)
-        // Create the stats document ID using the same format as in FirebaseRepository and Cloud Function
-        val statsDocId = "${cubeType.name}_${selectedTag}"
-        val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
-        val statsRef = db.collection("users")
-            .document(userId!!)
-            .collection("stats")
-            .document(statsDocId)
-        val listener = statsRef.addSnapshotListener { snapshot, _ ->
-            if (snapshot != null && snapshot.exists()) {
-                val data = snapshot.data
-                // Map the fields to SolveStatistics
-                stats = SolveStatistics(
-                    count = (data?.get("count") as? Long)?.toInt() ?: 0,
-                    validCount = (data?.get("validCount") as? Long)?.toInt() ?: 0,
-                    best = data?.get("best") as? Long ?: 0,
-                    average = (data?.get("average") as? Number)?.toDouble() ?: 0.0,
-                    deviation = (data?.get("deviation") as? Number)?.toDouble() ?: 0.0,
-                    ao5 = (data?.get("ao5") as? Number)?.toDouble() ?: 0.0,
-                    ao12 = (data?.get("ao12") as? Number)?.toDouble() ?: 0.0,
-                    ao50 = (data?.get("ao50") as? Number)?.toDouble() ?: 0.0,
-                    ao100 = (data?.get("ao100") as? Number)?.toDouble() ?: 0.0
-                )
+        // Store userId in a local variable to avoid smart cast issues
+        val currentUserId = userId
 
-                // Also update the count from the query
-                coroutineScope.launch {
-                    solveCount = repository.countSolvesByCubeTypeAndTag(cubeType, selectedTag)
+        // Only proceed if currentUserId is not null
+        if (currentUserId != null) {
+            val cubeType = CubeType.fromDisplayName(selectedCubeType)
+            // Create the stats document ID using the same format as in FirebaseRepository and Cloud Function
+            val statsDocId = "${cubeType.name}_${selectedTag}"
+            val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+            val statsRef = db.collection("users")
+                .document(currentUserId)
+                .collection("stats")
+                .document(statsDocId)
+
+            val listener = statsRef.addSnapshotListener { snapshot, _ ->
+                if (snapshot != null && snapshot.exists()) {
+                    val data = snapshot.data
+                    // Map the fields to SolveStatistics
+                    stats = SolveStatistics(
+                        count = (data?.get("count") as? Long)?.toInt() ?: 0,
+                        validCount = (data?.get("validCount") as? Long)?.toInt() ?: 0,
+                        best = data?.get("best") as? Long ?: 0,
+                        average = (data?.get("average") as? Number)?.toDouble() ?: 0.0,
+                        deviation = (data?.get("deviation") as? Number)?.toDouble() ?: 0.0,
+                        ao5 = (data?.get("ao5") as? Number)?.toDouble() ?: 0.0,
+                        ao12 = (data?.get("ao12") as? Number)?.toDouble() ?: 0.0,
+                        ao50 = (data?.get("ao50") as? Number)?.toDouble() ?: 0.0,
+                        ao100 = (data?.get("ao100") as? Number)?.toDouble() ?: 0.0
+                    )
+
+                    // Also update the count from the query
+                    coroutineScope.launch {
+                        solveCount = repository.countSolvesByCubeTypeAndTag(cubeType, selectedTag)
+                    }
+                } else {
+                    stats = SolveStatistics() // Empty if it doesn't exist
                 }
-            } else {
-                stats = SolveStatistics() // Empty if it doesn't exist
+            }
+
+            // Return a function that removes the listener when disposed
+            return@DisposableEffect onDispose { 
+                listener.remove() // Very important
             }
         }
-        onDispose { listener.remove() } // Very important
+
+        // If userId is null, just return an empty onDispose function
+        return@DisposableEffect onDispose { }
     }
 
     // Determine the appropriate layout based on device type and orientation

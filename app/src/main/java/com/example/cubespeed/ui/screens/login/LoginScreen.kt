@@ -31,8 +31,16 @@ import androidx.compose.ui.unit.sp
 import com.example.cubespeed.R
 import com.example.cubespeed.ui.theme.BlueGradient
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInClient
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.api.ApiException
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.platform.LocalContext
 
 /**
  * Login screen composable
@@ -53,34 +61,62 @@ fun LoginScreen(
 
     val focusManager = LocalFocusManager.current
     val auth = remember { Firebase.auth }
+    val context = LocalContext.current
+
+    // Configure Google Sign In
+    val googleSignInOptions = remember {
+        GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken("133521252013-m54d42bmbbtgolvjasrhohtcbuh6hs57.apps.googleusercontent.com")
+            .requestEmail()
+            .build()
+    }
+
+    val googleSignInClient = remember {
+        GoogleSignIn.getClient(context, googleSignInOptions)
+    }
+
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+        try {
+            val account = task.getResult(ApiException::class.java)
+            val idToken = account.idToken
+            if (idToken != null) {
+                // Got an ID token from Google. Use it to authenticate with Firebase.
+                val firebaseCredential = GoogleAuthProvider.getCredential(idToken, null)
+                auth.signInWithCredential(firebaseCredential)
+                    .addOnCompleteListener { task ->
+                        if (task.isSuccessful) {
+                            onLoginSuccess()
+                        } else {
+                            errorMessage = task.exception?.message ?: "Google authentication failed"
+                            isLoading = false
+                        }
+                    }
+            } else {
+                errorMessage = "Google Sign In failed: No ID token"
+                isLoading = false
+            }
+        } catch (e: ApiException) {
+            errorMessage = "Google Sign In failed: ${e.message}"
+            isLoading = false
+        }
+    }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(
-                color = MaterialTheme.colorScheme.background
-            )
-    ) {
-        // Rubik's cube themed background
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.background,
-                            MaterialTheme.colorScheme.background.copy(alpha = 0.9f)
-                        )
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        MaterialTheme.colorScheme.onPrimaryContainer,
+                        MaterialTheme.colorScheme.secondary,
+                        MaterialTheme.colorScheme.primary
                     )
                 )
-        ) {
-            Image(
-                painter = painterResource(id = R.drawable.rubiks_cube_background),
-                contentDescription = null,
-                contentScale = ContentScale.FillBounds,
-                modifier = Modifier.fillMaxSize()
             )
-        }
+    ) {
         // Background decorative elements
         Box(
             modifier = Modifier
@@ -295,7 +331,15 @@ fun LoginScreen(
 
                     // Google login button
                     OutlinedButton(
-                        onClick = { /* Google login to be implemented */ },
+                        onClick = { 
+                            isLoading = true
+                            errorMessage = null
+                            // Sign out from Google first to ensure account picker is shown
+                            googleSignInClient.signOut().addOnCompleteListener {
+                                // Then launch the sign-in intent
+                                launcher.launch(googleSignInClient.signInIntent)
+                            }
+                        },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp),
@@ -306,47 +350,46 @@ fun LoginScreen(
                             contentColor = Color(0xFF757575)
                         )
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            // Google "G" logo colors
-                            Box(
-                                modifier = Modifier
-                                    .size(24.dp)
-                                    .background(Color.White)
-                                    .border(1.dp, Color(0xFFDDDDDD), RoundedCornerShape(12.dp)),
-                                contentAlignment = Alignment.Center
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                color = Color(0xFF4285F4),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
                             ) {
+                                // Google logo image
+                                Image(
+                                    painter = painterResource(id = R.drawable.google),
+                                    contentDescription = "Google Logo",
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = "G",
-                                    color = Color(0xFF4285F4),
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 16.sp
+                                    "Continue with Google",
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = Color(0xFF757575)
                                 )
                             }
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                "Continue with Google",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = Color(0xFF757575)
-                            )
                         }
                     }
                 }
-            }
 
-            // Register link
-            TextButton(
-                onClick = onNavigateToRegister,
-                modifier = Modifier.padding(top = 16.dp)
-            ) {
-                Text(
-                    "Don't have an account? Create one",
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Medium
-                )
+                // Register link
+                TextButton(
+                    onClick = onNavigateToRegister,
+                    modifier = Modifier.padding(top = 16.dp)
+                ) {
+                    Text(
+                        "Don't have an account? Create one",
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
             }
         }
     }

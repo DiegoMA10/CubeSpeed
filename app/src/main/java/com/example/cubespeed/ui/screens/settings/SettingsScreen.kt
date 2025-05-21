@@ -16,6 +16,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.example.cubespeed.ui.theme.AppThemeType
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.launch
@@ -291,8 +293,22 @@ fun SettingsScreen(
             // Logout button
             Button(
                 onClick = {
-                    auth.signOut()
-                    onLogout()
+                    // Configure Google Sign In
+                    val googleSignInOptions = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                        .requestIdToken("133521252013-m54d42bmbbtgolvjasrhohtcbuh6hs57.apps.googleusercontent.com")
+                        .requestEmail()
+                        .build()
+
+                    // Get Google Sign In client
+                    val googleSignInClient = GoogleSignIn.getClient(context, googleSignInOptions)
+
+                    // Sign out from Google
+                    googleSignInClient.signOut().addOnCompleteListener {
+                        // Then sign out from Firebase
+                        auth.signOut()
+                        // Navigate to login screen
+                        onLogout()
+                    }
                 },
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(

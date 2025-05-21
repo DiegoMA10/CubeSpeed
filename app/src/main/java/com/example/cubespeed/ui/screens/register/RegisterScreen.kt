@@ -61,29 +61,15 @@ fun RegisterScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(
-                color = MaterialTheme.colorScheme.background
-            )
-    ) {
-        // Rubik's cube themed background
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.background,
-                            MaterialTheme.colorScheme.background.copy(alpha = 0.9f)
-                        )
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        MaterialTheme.colorScheme.onPrimaryContainer,
+                        MaterialTheme.colorScheme.secondary,
+                        MaterialTheme.colorScheme.primary
                     )
                 )
-        ) {
-            Image(
-                painter = painterResource(id = R.drawable.rubiks_cube_background),
-                contentDescription = null,
-                contentScale = ContentScale.FillBounds,
-                modifier = Modifier.fillMaxSize()
             )
-        }
+    ) {
         // Background decorative elements
         Box(
             modifier = Modifier
@@ -339,19 +325,19 @@ fun RegisterScreen(
                             )
                         }
                     }
-                }
-            }
 
-            // Login link
-            TextButton(
-                onClick = onNavigateToLogin,
-                modifier = Modifier.padding(top = 16.dp)
-            ) {
-                Text(
-                    "Already have an account? Log in",
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Medium
-                )
+                    // Login link
+                    TextButton(
+                        onClick = onNavigateToLogin,
+                        modifier = Modifier.padding(top = 16.dp)
+                    ) {
+                        Text(
+                            "Already have an account? Log in",
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
             }
         }
     }
