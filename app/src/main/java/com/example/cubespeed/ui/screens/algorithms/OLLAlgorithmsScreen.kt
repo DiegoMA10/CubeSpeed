@@ -36,6 +36,9 @@ fun OLLAlgorithmsScreen(navController: NavController) {
     val ollCases = remember { AlgUtils.getAllOLLCases() }
     val context = LocalContext.current
 
+    // Add a flag to prevent multiple rapid back button presses
+    var isNavigatingBack by remember { mutableStateOf(false) }
+
     // Show OLL algorithm detail dialog when an OLL algorithm is selected
     if (showOLLAlgorithmDialog && selectedOLLAlgorithm != null) {
         OLLAlgorithmDetailDialogImpl(
@@ -56,7 +59,14 @@ fun OLLAlgorithmsScreen(navController: NavController) {
                 modifier = Modifier.padding(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = { navController.popBackStack() }) {
+                IconButton(
+                    onClick = {
+                        if (!isNavigatingBack) {
+                            isNavigatingBack = true
+                            navController.popBackStack()
+                        }
+                    }
+                ) {
                     Icon(
                         imageVector = Icons.Default.ArrowBack,
                         contentDescription = "Back",

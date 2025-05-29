@@ -1,31 +1,22 @@
 package com.example.cubespeed.navigation
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.Code
-import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.unit.dp
-import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.cubespeed.ui.screens.algorithms.OLLAlgorithmsScreen
 import com.example.cubespeed.ui.screens.algorithms.PLLAlgorithmsScreen
 import com.example.cubespeed.ui.screens.login.LoginScreen
-import com.example.cubespeed.ui.screens.register.RegisterScreen
 import com.example.cubespeed.ui.screens.main.MainTabsScreen
+import com.example.cubespeed.ui.screens.register.RegisterScreen
 import com.example.cubespeed.ui.theme.AppThemeType
-import com.google.firebase.auth.ktx.auth
-import com.google.firebase.ktx.Firebase
 
 /**
  * Sealed class representing all possible navigation routes in the app
@@ -84,6 +75,9 @@ val bottomNavItems = listOf(
  * Main navigation component that manages navigation between screens
  * @param navController The navigation controller to use for navigation
  * @param startDestination The starting destination route
+ * @param onThemeChanged Callback for when the theme is changed
+ * @param onTimerRunningChange Callback for when the timer running state changes
+ * @param initialTabIndex Initial tab to show in MainTabsScreen (0 for Timer, 1 for History, 2 for Statistics, 3 for Algorithms)
  */
 @Composable
 fun NavigationWrapper(
@@ -91,7 +85,8 @@ fun NavigationWrapper(
     navController: NavHostController,
     startDestination: String = Route.Login.route,
     onThemeChanged: (AppThemeType) -> Unit = {},
-    onTimerRunningChange: (Boolean) -> Unit = {}
+    onTimerRunningChange: (Boolean) -> Unit = {},
+    initialTabIndex: Int = 0 // Default to Timer tab
 ) {
     NavHost(
         modifier = modifier,
@@ -101,7 +96,7 @@ fun NavigationWrapper(
         composable(Route.Login.route) {
             LoginScreen(
                 onNavigateToRegister = { navController.navigate(Route.Register.route) },
-                onLoginSuccess = { 
+                onLoginSuccess = {
                     navController.navigate(Route.MainTabs.route) {
                         // Clear back stack when user logs in
                         popUpTo(Route.Login.route) { inclusive = true }
@@ -113,7 +108,7 @@ fun NavigationWrapper(
         composable(Route.Register.route) {
             RegisterScreen(
                 onNavigateToLogin = { navController.navigate(Route.Login.route) },
-                onRegisterSuccess = { 
+                onRegisterSuccess = {
                     navController.navigate(Route.MainTabs.route) {
                         // Clear back stack when user registers
                         popUpTo(Route.Login.route) { inclusive = true }
@@ -124,16 +119,17 @@ fun NavigationWrapper(
 
         composable(Route.MainTabs.route) {
             // Use the new MainTabsScreen composable
-           MainTabsScreen(
+            MainTabsScreen(
                 navController = navController,
-                onLogout = { 
+                onLogout = {
                     navController.navigate(Route.Login.route) {
                         // Clear back stack when user logs out
                         popUpTo(Route.MainTabs.route) { inclusive = true }
                     }
                 },
                 onThemeChanged = onThemeChanged,
-                onTimerRunningChange = onTimerRunningChange
+                onTimerRunningChange = onTimerRunningChange,
+                initialTab = initialTabIndex // Pass the initial tab index
             )
         }
 
@@ -147,32 +143,9 @@ fun NavigationWrapper(
             PLLAlgorithmsScreen(navController)
         }
 
-        // Game screen (placeholder for now)
+        // Game screen that launches Unity
         composable(Route.Game.route) {
-            // This will be implemented later
-            Surface(
-                modifier = Modifier.fillMaxSize(),
-                color = MaterialTheme.colorScheme.background
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        text = "Game Coming Soon!",
-                        style = MaterialTheme.typography.headlineMedium
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Button(onClick = { navController.popBackStack() }) {
-                        Text("Go Back")
-                    }
-                }
-            }
+            com.example.cubespeed.ui.screens.game.GameScreen(navController)
         }
     }
 }

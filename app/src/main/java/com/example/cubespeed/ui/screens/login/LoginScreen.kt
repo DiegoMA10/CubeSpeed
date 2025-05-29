@@ -142,15 +142,21 @@ fun LoginScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // App title with gradient background
-            Box(
+            // App title with icon
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(brush = BlueGradient)
                     .padding(vertical = 24.dp, horizontal = 16.dp),
-                contentAlignment = Alignment.Center
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
             ) {
+                Image(
+                    painter = painterResource(id = R.drawable.cube_speed_icon),
+                    contentDescription = "App Icon",
+                    modifier = Modifier.size(48.dp),
+                    contentScale = ContentScale.Fit
+                )
+                Spacer(modifier = Modifier.width(12.dp))
                 Text(
                     text = "CubeSpeed",
                     fontSize = 32.sp,

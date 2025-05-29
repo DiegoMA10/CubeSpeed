@@ -74,7 +74,7 @@ fun TimerScreenRefactored(
             cubeTypes = cubeTypes,
             onCubeSelected = {
                 selectedCubeType = it
-                AppState.selectedCubeType = it
+                AppState.updateCubeType(it)
                 viewModel.updateSelectedCubeType(it)
                 showCubeSelectionDialog = false
             },
@@ -88,7 +88,7 @@ fun TimerScreenRefactored(
             currentTag = selectedTag,
             onTagConfirmed = {
                 selectedTag = it
-                AppState.selectedTag = it
+                AppState.updateTag(it)
                 viewModel.updateSelectedTag(it)
                 showTagDialog = false
             },

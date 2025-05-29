@@ -191,7 +191,7 @@ class HistoryViewModel : ViewModel() {
      */
     fun updateSelectedCubeType(cubeType: String) {
         selectedCubeType = cubeType
-        AppState.selectedCubeType = cubeType
+        AppState.updateCubeType(cubeType)
 
         // Exit selection mode when changing filters
         exitSelectionMode()
@@ -206,7 +206,7 @@ class HistoryViewModel : ViewModel() {
      */
     fun updateSelectedTag(tag: String) {
         selectedTag = tag
-        AppState.selectedTag = tag
+        AppState.updateTag(tag)
 
         // Exit selection mode when changing filters
         exitSelectionMode()

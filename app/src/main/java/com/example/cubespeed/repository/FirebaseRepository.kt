@@ -134,17 +134,34 @@ class FirebaseRepository {
         val currentUser = auth.currentUser ?: return SolveStatistics()
 
         try {
+            // Create the stats document ID
+            val statsDocId = "${cubeType.name}_$tagId"
+            Log.d("FirebaseRepository", "Getting stats for document ID: '$statsDocId' (cube type: '${cubeType.name}', display name: '${cubeType.displayName}', tag: '$tagId')")
+
+            // Check if there are any stats documents for this user
+            val allStatsQuery = firestore.collection("users")
+                .document(currentUser.uid)
+                .collection("stats")
+                .get()
+                .await()
+
+            Log.d("FirebaseRepository", "Found ${allStatsQuery.size()} stats documents for user ${currentUser.uid}")
+            allStatsQuery.documents.forEach { doc ->
+                Log.d("FirebaseRepository", "Stats document: ${doc.id}")
+            }
+
             // Get statistics from Firestore
             val statsRef = firestore.collection("users")
                 .document(currentUser.uid)
                 .collection("stats")
-                .document("${cubeType.name}_$tagId")
+                .document(statsDocId)
 
             val statsDoc = statsRef.get().await()
 
             if (statsDoc.exists()) {
+                Log.d("FirebaseRepository", "Stats document exists for '$statsDocId'")
                 // Convert Firestore document to SolveStatistics
-                return SolveStatistics(
+                val stats = SolveStatistics(
                     count = statsDoc.getLong("count")?.toInt() ?: 0,
                     validCount = statsDoc.getLong("validCount")?.toInt() ?: 0,
                     best = statsDoc.getLong("best") ?: 0,
@@ -155,6 +172,10 @@ class FirebaseRepository {
                     ao50 = statsDoc.getDouble("ao50") ?: 0.0,
                     ao100 = statsDoc.getDouble("ao100") ?: 0.0
                 )
+                Log.d("FirebaseRepository", "Loaded stats for '$statsDocId': count=${stats.count}, best=${stats.best}, ao5=${stats.ao5}")
+                return stats
+            } else {
+                Log.d("FirebaseRepository", "No stats document found for '$statsDocId'")
             }
 
             // If no statistics found, return empty statistics
@@ -346,12 +367,16 @@ class FirebaseRepository {
             // Apply filters directly in the Firestore query if specific values are selected
             if (selectedCubeType != "All") {
                 // Convert display name to enum name
+                Log.d("FirebaseRepository", "Converting selected cube type: '$selectedCubeType'")
                 val cubeTypeEnum = CubeType.fromDisplayName(selectedCubeType)
+                Log.d("FirebaseRepository", "Converted to enum: ${cubeTypeEnum.name} (${cubeTypeEnum.displayName})")
                 query = query.whereEqualTo("cube", cubeTypeEnum.name)
+                Log.d("FirebaseRepository", "Added filter: cube = ${cubeTypeEnum.name}")
             }
 
             if (selectedTag != "All") {
                 query = query.whereEqualTo("tagId", selectedTag)
+                Log.d("FirebaseRepository", "Added filter: tagId = $selectedTag")
             }
 
             // Apply limit after filters
@@ -375,15 +400,22 @@ class FirebaseRepository {
                     return@addSnapshotListener
                 }
 
+                // Log the number of documents returned
+                Log.d("FirebaseRepository", "Snapshot contains ${snapshot.documents.size} documents")
+
                 // Convert documents to Solve objects
                 val solves = snapshot.documents.mapNotNull { doc ->
                     val id = doc.id
                     val cubeTypeStr = doc.getString("cube") ?: return@mapNotNull null
+                    Log.d("FirebaseRepository", "Document ${doc.id} has cube type: '$cubeTypeStr'")
+
                     val cubeType = try {
                         CubeType.valueOf(cubeTypeStr)
                     } catch (e: Exception) {
+                        Log.e("FirebaseRepository", "Error converting cube type '$cubeTypeStr' to enum, defaulting to CUBE_3X3", e)
                         CubeType.CUBE_3X3
                     }
+
                     val tagId = doc.getString("tagId") ?: "normal"
                     val timestamp = doc.getTimestamp("timestamp") ?: Timestamp.now()
                     val time = doc.getLong("duration") ?: 0L
@@ -407,6 +439,9 @@ class FirebaseRepository {
                         comments = comments
                     )
                 }
+
+                // Log the number of solves after conversion
+                Log.d("FirebaseRepository", "Converted ${solves.size} solves")
 
                 // Since we're filtering in the query, we don't need to filter again
                 // But we'll keep this as a safety check in case the query filters don't work as expected

@@ -1,5 +1,6 @@
 package com.example.cubespeed.ui.screens.statistics
 
+import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -10,6 +11,7 @@ import com.example.cubespeed.model.Solve
 import com.example.cubespeed.model.SolveStatus
 import com.example.cubespeed.repository.FirebaseRepository
 import com.example.cubespeed.repository.SolveStatistics
+import com.example.cubespeed.state.AppState
 import com.google.firebase.Timestamp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -80,8 +82,11 @@ class StatisticsViewModel : ViewModel() {
 
     // Initialize with default values
     init {
-        selectedCubeType = "3x3 Cube" // Default to 3x3
-        selectedTag = ""  // Default to no tag
+        // Get the selected cube type and tag from AppState
+        // We'll set a default value first, then update it in loadStatistics
+        // This ensures we get the correct value after AppState is initialized from SharedPreferences
+        selectedCubeType = AppState.selectedCubeType
+        selectedTag = AppState.selectedTag
         loadStatistics()
     }
 
@@ -89,6 +94,7 @@ class StatisticsViewModel : ViewModel() {
      * Updates the selected cube type and reloads statistics.
      */
     fun updateCubeType(cubeType: String) {
+        Log.d("StatisticsViewModel", "Updating cube type from $selectedCubeType to $cubeType")
         selectedCubeType = cubeType
         loadStatistics()
     }
@@ -97,6 +103,7 @@ class StatisticsViewModel : ViewModel() {
      * Updates the selected tag and reloads statistics.
      */
     fun updateTag(tag: String) {
+        Log.d("StatisticsViewModel", "Updating tag from $selectedTag to $tag")
         selectedTag = tag
         loadStatistics()
     }
@@ -107,19 +114,45 @@ class StatisticsViewModel : ViewModel() {
     fun loadStatistics() {
         isLoading = true
 
+        // Update selectedCubeType and selectedTag from AppState
+        // This ensures we get the correct values after AppState is initialized from SharedPreferences
+        if (selectedCubeType != AppState.selectedCubeType) {
+            Log.d("StatisticsViewModel", "Updating cube type from $selectedCubeType to ${AppState.selectedCubeType}")
+            selectedCubeType = AppState.selectedCubeType
+        }
+
+        if (selectedTag != AppState.selectedTag) {
+            Log.d("StatisticsViewModel", "Updating tag from $selectedTag to ${AppState.selectedTag}")
+            selectedTag = AppState.selectedTag
+        }
+
+        Log.d("StatisticsViewModel", "Loading statistics for cube type: '$selectedCubeType', tag: '$selectedTag'")
+
         viewModelScope.launch {
             try {
                 withContext(Dispatchers.IO) {
-                    val cubeType = CubeType.fromDisplayName(selectedCubeType)
+                    // Log all available cube types for debugging
+                    Log.d(
+                        "StatisticsViewModel",
+                        "Available cube types: ${CubeType.values().joinToString { "${it.name} (${it.displayName})" }}"
+                    )
+
+                    val cubeType = CubeType.fromDisplayName(AppState.selectedCubeType)
+                    Log.d("StatisticsViewModel", "Converted cube type: ${cubeType.name} (${cubeType.displayName})")
 
                     // Load statistics
-                    statistics = repository.getStats(cubeType, selectedTag)
+                    statistics = repository.getStats(cubeType, AppState.selectedTag)
+                    Log.d(
+                        "StatisticsViewModel",
+                        "Loaded statistics: count=${statistics.count}, best=${statistics.best}, ao5=${statistics.ao5}"
+                    )
 
                     // Load recent solves for the chart
                     loadRecentSolves(cubeType, selectedTag)
                 }
             } catch (e: Exception) {
                 // Handle error
+                Log.e("StatisticsViewModel", "Error loading statistics", e)
                 e.printStackTrace()
             } finally {
                 isLoading = false
@@ -135,18 +168,38 @@ class StatisticsViewModel : ViewModel() {
             // Remove any existing listener
             solvesListener?.remove()
 
+            // Log the cube type and tag being used for debugging
+            Log.d(
+                "StatisticsViewModel",
+                "Loading solves for cube type: '${cubeType.name}' (display name: '${cubeType.displayName}'), tag: '$tagId'"
+            )
+
             // Create a new listener for real-time updates
             solvesListener = repository.listenForSolves(
                 onSolvesUpdate = { solves, _, _ ->
+                    // Log the number of solves received
+                    Log.d(
+                        "StatisticsViewModel",
+                        "Received ${solves.size} solves for '${cubeType.name}' (display name: '${cubeType.displayName}'), tag: '$tagId'"
+                    )
+
+                    // Log the cube types of the received solves
+                    val cubeTypeCounts = solves.groupBy { it.cube.name }.mapValues { it.value.size }
+                    Log.d("StatisticsViewModel", "Cube type distribution in received solves: $cubeTypeCounts")
+
                     // Sort by timestamp for chronological order
                     val solvesList = solves.sortedBy { it.timestamp }
 
-                    // If we have more than 1000 solves, take only the most recent 1000
-                    val limitedSolves = if (solvesList.size > 1000) {
-                        solvesList.takeLast(1000)
+                    // If we have more than 100 solves, take only the most recent 100
+                    val limitedSolves = if (solvesList.size > 100) {
+                        solvesList.takeLast(100)
                     } else {
                         solvesList
                     }
+
+                    // Log the cube types of the limited solves
+                    val limitedCubeTypeCounts = limitedSolves.groupBy { it.cube.name }.mapValues { it.value.size }
+                    Log.d("StatisticsViewModel", "Cube type distribution in limited solves: $limitedCubeTypeCounts")
 
                     // Update the state
                     recentSolves = limitedSolves
@@ -157,7 +210,7 @@ class StatisticsViewModel : ViewModel() {
                     // Set loading to false after data is loaded
                     isLoading = false
                 },
-                pageSize = 1000, // Increased from 100 to ensure all solves are loaded
+                pageSize = 100, // Limit to 100 solves as per requirement
                 selectedCubeType = cubeType.displayName,
                 selectedTag = tagId
             )

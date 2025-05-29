@@ -1,43 +1,25 @@
 package com.example.cubespeed
 
 import android.os.Bundle
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.background
-import androidx.compose.runtime.SideEffect
-import androidx.core.view.WindowCompat
-import com.google.accompanist.systemuicontroller.rememberSystemUiController
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.systemBars
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.navigation.compose.rememberNavController
 import com.example.cubespeed.navigation.NavigationWrapper
 import com.example.cubespeed.navigation.Route
+import com.example.cubespeed.state.AppState
 import com.example.cubespeed.ui.theme.AppThemeType
 import com.example.cubespeed.ui.theme.CubeSpeedTheme
 import com.example.cubespeed.ui.theme.LocalThemePreference
+import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
-import androidx.core.graphics.toColorInt
-import android.view.WindowManager
 
 
 class MainActivity : ComponentActivity() {
@@ -46,6 +28,9 @@ class MainActivity : ComponentActivity() {
 
         // Enable edge-to-edge display
         enableEdgeToEdge()
+
+        // Initialize AppState with context
+        AppState.initialize(applicationContext)
 
         // Get initial theme preference (only used for CompositionLocalProvider)
         val sharedPrefs = getSharedPreferences("cubespeed_settings", 0)
@@ -126,6 +111,11 @@ class MainActivity : ComponentActivity() {
 
                     val navController = rememberNavController()
 
+                    // Check if we should show the Timer tab (from Unity back button)
+                    // If SHOW_TIMER_SCREEN is true, we'll show the Timer tab (index 0)
+                    // This is used when returning from Unity via back button
+                    val initialTabIndex = 0 // Always start with Timer tab (index 0)
+
                     // Scaffold at the top level
                     Scaffold(
                         modifier = Modifier
@@ -138,7 +128,8 @@ class MainActivity : ComponentActivity() {
                             navController = navController,
                             startDestination = startDestination,
                             onThemeChanged = themeChangeListener,
-                            onTimerRunningChange = { running -> isTimerRunning = running }
+                            onTimerRunningChange = { running -> isTimerRunning = running },
+                            initialTabIndex = initialTabIndex // Pass the initial tab index
                         )
                     }
                 }

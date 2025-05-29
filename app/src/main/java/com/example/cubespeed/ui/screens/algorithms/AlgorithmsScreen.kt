@@ -18,6 +18,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.cubespeed.navigation.Route
+import com.example.cubespeed.ui.theme.AppThemeType
+import com.example.cubespeed.ui.theme.currentAppTheme
 import com.example.cubespeed.ui.theme.isAppInLightTheme
 
 /**
@@ -109,7 +111,11 @@ fun AlgorithmCard(
                 imageVector = icon,
                 contentDescription = title,
                 modifier = Modifier.size(64.dp),
-                tint = MaterialTheme.colorScheme.secondary
+                tint = when (currentAppTheme) {
+                    AppThemeType.BLUE -> androidx.compose.ui.graphics.Color.Blue
+                    AppThemeType.LIGHT -> androidx.compose.ui.graphics.Color.Black
+                    AppThemeType.DARK -> androidx.compose.ui.graphics.Color.White
+                }
             )
 
             Spacer(modifier = Modifier.width(16.dp))

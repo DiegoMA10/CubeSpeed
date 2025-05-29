@@ -20,6 +20,12 @@ enum class CubeType(val displayName: String, val idName: String = "") {
         fun fromDisplayName(displayName: String): CubeType {
             val normalizedDisplayName = displayName.trim()
 
+            // If empty or null, default to 3x3
+            if (normalizedDisplayName.isEmpty()) {
+                println("[DEBUG_LOG] Empty display name, defaulting to CUBE_3X3")
+                return CUBE_3X3
+            }
+
             // First try exact match
             val exactMatch = values().find { it.displayName == normalizedDisplayName }
             if (exactMatch != null) {
@@ -38,11 +44,15 @@ enum class CubeType(val displayName: String, val idName: String = "") {
 
             // If no exact match, try to match by the cube size/type part
             // For example, if displayName is "6x6", it should match "6x6 Cube"
+            // But be more strict about partial matches to avoid incorrect matches
             val cubeTypeMatch = values().find { cubeType ->
                 val cubeTypePart = cubeType.displayName.split(" ")[0].trim().lowercase()
                 val displayNamePart = normalizedDisplayName.split(" ")[0].trim().lowercase()
 
-                displayNamePart.contains(cubeTypePart) || cubeTypePart.contains(displayNamePart)
+                // Only match if the parts are exactly equal or one contains the other completely
+                cubeTypePart == displayNamePart || 
+                (cubeTypePart.length > displayNamePart.length && cubeTypePart.startsWith(displayNamePart)) ||
+                (displayNamePart.length > cubeTypePart.length && displayNamePart.startsWith(cubeTypePart))
             }
 
             if (cubeTypeMatch != null) {

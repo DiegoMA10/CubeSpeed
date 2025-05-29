@@ -259,7 +259,10 @@ fun TimerComponent(
                 ResponsiveScrambleBar(
                     scramble = viewModel.scramble,
                     isLoading = viewModel.isScrambleLoading,
-                    onEdit = { /* Edit logic */ },
+                    onEdit = { newScramble ->
+                        // Update the scramble when edited
+                        viewModel.updateScramble(newScramble)
+                    },
                     onShuffle = {
                         // Only update the scramble if not in cooldown
                         if (!viewModel.isInCooldown) {

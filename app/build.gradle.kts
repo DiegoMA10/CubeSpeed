@@ -46,6 +46,8 @@ repositories {
 }
 
 dependencies {
+    // Unity Library
+    implementation(project(":unityLibrary"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

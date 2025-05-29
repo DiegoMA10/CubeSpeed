@@ -3,11 +3,11 @@ package com.example.cubespeed.ui.screens.settings
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ColorLens
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Logout
-import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -16,6 +16,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.example.cubespeed.ui.theme.AppThemeType
+import com.example.cubespeed.ui.theme.isAppInLightTheme
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.firebase.auth.ktx.auth
@@ -37,7 +38,6 @@ fun SettingsScreen(
 
     // State for settings
     var selectedTheme by remember { mutableStateOf(AppThemeType.BLUE) }
-    var notificationsEnabled by remember { mutableStateOf(true) }
 
     // Snackbar host state
     val snackbarHostState = remember { SnackbarHostState() }
@@ -48,7 +48,6 @@ fun SettingsScreen(
         val sharedPrefs = context.getSharedPreferences("cubespeed_settings", 0)
         val themeOrdinal = sharedPrefs.getInt("theme_type", AppThemeType.BLUE.ordinal)
         selectedTheme = AppThemeType.values()[themeOrdinal]
-        notificationsEnabled = sharedPrefs.getBoolean("notifications_enabled", true)
     }
 
     // Function to save settings
@@ -56,7 +55,6 @@ fun SettingsScreen(
         val sharedPrefs = context.getSharedPreferences("cubespeed_settings", 0)
         with(sharedPrefs.edit()) {
             putInt("theme_type", selectedTheme.ordinal)
-            putBoolean("notifications_enabled", notificationsEnabled)
             apply()
         }
 
@@ -66,29 +64,25 @@ fun SettingsScreen(
     }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Settings", color = MaterialTheme.colorScheme.onPrimary) },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            )
-        },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(16.dp),
+                .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // User info card
             Card(
                 modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    containerColor = MaterialTheme.colorScheme.surface
+                ),
+                elevation = CardDefaults.cardElevation(
+                    defaultElevation = if (isAppInLightTheme) 2.dp else 0.dp
                 )
             ) {
                 Column(
@@ -97,14 +91,14 @@ fun SettingsScreen(
                     Text(
                         text = "User Information",
                         style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onPrimary,
+                        color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
 
                     Text(
                         text = "Email: ${currentUser?.email ?: "Not logged in"}",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onPrimary
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
             }
@@ -112,8 +106,12 @@ fun SettingsScreen(
             // Theme settings
             Card(
                 modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    containerColor = MaterialTheme.colorScheme.surface
+                ),
+                elevation = CardDefaults.cardElevation(
+                    defaultElevation = if (isAppInLightTheme) 2.dp else 0.dp
                 )
             ) {
                 Column(
@@ -122,6 +120,7 @@ fun SettingsScreen(
                     Text(
                         text = "Appearance",
                         style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
 
@@ -138,7 +137,8 @@ fun SettingsScreen(
 
                         Text(
                             text = "Theme",
-                            style = MaterialTheme.typography.bodyLarge
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     }
 
@@ -167,11 +167,16 @@ fun SettingsScreen(
                         ) {
                             RadioButton(
                                 selected = selectedTheme == AppThemeType.BLUE,
-                                onClick = null // null because we're handling the click on the row
+                                onClick = null, // null because we're handling the click on the row
+                                colors = RadioButtonDefaults.colors(
+                                    selectedColor = androidx.compose.ui.graphics.Color(0xFF2962FF), // Fixed blue color
+                                    unselectedColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             )
                             Text(
                                 text = "Blue",
                                 style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.padding(start = 16.dp)
                             )
                         }
@@ -195,11 +200,16 @@ fun SettingsScreen(
                         ) {
                             RadioButton(
                                 selected = selectedTheme == AppThemeType.LIGHT,
-                                onClick = null // null because we're handling the click on the row
+                                onClick = null, // null because we're handling the click on the row
+                                colors = RadioButtonDefaults.colors(
+                                    selectedColor = androidx.compose.ui.graphics.Color(0xFF757575), // Fixed gray color
+                                    unselectedColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             )
                             Text(
                                 text = "Light",
                                 style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.padding(start = 16.dp)
                             )
                         }
@@ -223,11 +233,16 @@ fun SettingsScreen(
                         ) {
                             RadioButton(
                                 selected = selectedTheme == AppThemeType.DARK,
-                                onClick = null // null because we're handling the click on the row
+                                onClick = null, // null because we're handling the click on the row
+                                colors = RadioButtonDefaults.colors(
+                                    selectedColor = androidx.compose.ui.graphics.Color(0xFFBB86FC), // Fixed purple color
+                                    unselectedColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             )
                             Text(
                                 text = "Dark",
                                 style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.padding(start = 16.dp)
                             )
                         }
@@ -235,64 +250,23 @@ fun SettingsScreen(
                 }
             }
 
-            // Notification settings
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                )
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp)
-                ) {
-                    Text(
-                        text = "Notifications",
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Notifications,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(end = 16.dp)
-                            )
-
-                            Text(
-                                text = "Enable Notifications",
-                                style = MaterialTheme.typography.bodyLarge
-                            )
-                        }
-
-                        Switch(
-                            checked = notificationsEnabled,
-                            onCheckedChange = { 
-                                notificationsEnabled = it
-                                saveSettings()
-                            }
-                        )
-                    }
-
-                    Text(
-                        text = "Receive notifications when a timer session is completed",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 8.dp, start = 40.dp)
-                    )
-                }
-            }
 
             // Logout button
             Button(
                 onClick = {
+                    // Reset theme to blue
+                    selectedTheme = AppThemeType.BLUE
+
+                    // Save the blue theme setting
+                    val sharedPrefs = context.getSharedPreferences("cubespeed_settings", 0)
+                    with(sharedPrefs.edit()) {
+                        putInt("theme_type", AppThemeType.BLUE.ordinal)
+                        apply()
+                    }
+
+                    // Notify parent about theme change
+                    onThemeChanged(AppThemeType.BLUE)
+
                     // Configure Google Sign In
                     val googleSignInOptions = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                         .requestIdToken("133521252013-m54d42bmbbtgolvjasrhohtcbuh6hs57.apps.googleusercontent.com")
@@ -311,9 +285,13 @@ fun SettingsScreen(
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.errorContainer,
                     contentColor = MaterialTheme.colorScheme.onErrorContainer
+                ),
+                elevation = ButtonDefaults.buttonElevation(
+                    defaultElevation = if (isAppInLightTheme) 2.dp else 0.dp
                 )
             ) {
                 Icon(
@@ -327,8 +305,12 @@ fun SettingsScreen(
             // App info
             Card(
                 modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    containerColor = MaterialTheme.colorScheme.surface
+                ),
+                elevation = CardDefaults.cardElevation(
+                    defaultElevation = if (isAppInLightTheme) 2.dp else 0.dp
                 )
             ) {
                 Column(
@@ -337,12 +319,14 @@ fun SettingsScreen(
                     Text(
                         text = "About",
                         style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
 
                     Text(
                         text = "CubeSpeed v1.0",
-                        style = MaterialTheme.typography.bodyMedium
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
 
                     Text(

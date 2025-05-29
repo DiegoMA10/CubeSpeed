@@ -5,17 +5,12 @@ import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.painter.BitmapPainter
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import androidx.core.graphics.createBitmap
 import com.caverock.androidsvg.SVG
 
@@ -71,20 +66,6 @@ fun ScrambleVisualization(
             if (bitmap != null) {
                 println("[DEBUG_LOG] Bitmap created successfully, rendering SvgImage")
                 SvgImage(bitmap)
-            } else {
-                println("[DEBUG_LOG] Bitmap creation failed, falling back to text representation")
-                // Fallback to text representation if SVG rendering fails
-                Text(
-                    text = cubeType.displayName,
-                    style = MaterialTheme.typography.titleMedium,
-                    textAlign = TextAlign.Center
-                )
-                Text(
-                    text = scramble,
-                    style = MaterialTheme.typography.bodyMedium,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
             }
         }
     }

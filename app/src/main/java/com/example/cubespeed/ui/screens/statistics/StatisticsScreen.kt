@@ -1,19 +1,18 @@
 package com.example.cubespeed.ui.screens.statistics
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.FilterList
-import androidx.compose.material.icons.filled.Label
 import androidx.compose.material3.*
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -26,6 +25,8 @@ import com.example.cubespeed.ui.screens.statistics.chart.TwistyTimerChart
 import com.example.cubespeed.ui.screens.timer.dialogs.CubeSelectionDialog
 import com.example.cubespeed.ui.screens.timer.dialogs.TagInputDialog
 import com.example.cubespeed.ui.screens.timer.utils.formatTime
+import com.example.cubespeed.ui.theme.AppThemeType
+import com.example.cubespeed.ui.theme.currentAppTheme
 import com.example.cubespeed.ui.theme.isAppInLightTheme
 import java.text.SimpleDateFormat
 import java.util.*
@@ -48,14 +49,30 @@ fun StatisticsScreen(
 
     // Observe changes to AppState and update ViewModel
     LaunchedEffect(AppState.selectedCubeType, AppState.selectedTag, AppState.historyRefreshTrigger) {
+        Log.d(
+            "StatisticsScreen",
+            "AppState changed: cubeType=${AppState.selectedCubeType}, tag=${AppState.selectedTag}, refreshTrigger=${AppState.historyRefreshTrigger}"
+        )
+
         if (viewModel.selectedCubeType != AppState.selectedCubeType) {
+            Log.d(
+                "StatisticsScreen",
+                "Updating cube type from ${viewModel.selectedCubeType} to ${AppState.selectedCubeType}"
+            )
             viewModel.updateCubeType(AppState.selectedCubeType)
         }
+
         if (viewModel.selectedTag != AppState.selectedTag) {
+            Log.d("StatisticsScreen", "Updating tag from ${viewModel.selectedTag} to ${AppState.selectedTag}")
             viewModel.updateTag(AppState.selectedTag)
         }
+
         // Refresh when historyRefreshTrigger changes (when solves are modified)
         if (AppState.historyRefreshTrigger > 0) {
+            Log.d(
+                "StatisticsScreen",
+                "Refreshing statistics due to historyRefreshTrigger=${AppState.historyRefreshTrigger}"
+            )
             viewModel.loadStatistics()
         }
     }
@@ -78,7 +95,8 @@ fun StatisticsScreen(
                 StatisticsContent(
                     statistics = viewModel.statistics,
                     recentSolves = viewModel.recentSolves,
-                    calculateMovingAverages = viewModel::calculateMovingAverages
+                    calculateMovingAverages = viewModel::calculateMovingAverages,
+                    twistyTimerStats = viewModel.twistyTimerStats
                 )
             }
         }
@@ -90,7 +108,7 @@ fun StatisticsScreen(
             cubeTypes = cubeTypes,
             onCubeSelected = {
                 viewModel.updateCubeType(it)
-                AppState.selectedCubeType = it
+                AppState.updateCubeType(it)
                 showCubeSelectionDialog = false
             },
             onDismiss = { showCubeSelectionDialog = false }
@@ -103,7 +121,7 @@ fun StatisticsScreen(
             currentTag = viewModel.selectedTag,
             onTagConfirmed = {
                 viewModel.updateTag(it)
-                AppState.selectedTag = it
+                AppState.updateTag(it)
                 showTagDialog = false
             },
             onDismiss = { showTagDialog = false }
@@ -111,73 +129,6 @@ fun StatisticsScreen(
     }
 }
 
-/**
- * Filter bar for selecting cube type and tag.
- */
-@Composable
-fun FilterBar(
-    selectedCubeType: String,
-    selectedTag: String,
-    onCubeTypeClick: () -> Unit,
-    onTagClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // Title
-        Text(
-            text = "Statistics",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-
-        // Filter buttons
-        Row(
-            horizontalArrangement = Arrangement.End,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Cube type filter
-            FilterChip(
-                selected = false,
-                onClick = onCubeTypeClick,
-                label = { Text(selectedCubeType, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.FilterList,
-                        contentDescription = "Select cube type",
-                        modifier = Modifier.size(16.dp)
-                    )
-                },
-                modifier = Modifier.padding(end = 8.dp)
-            )
-
-            // Tag filter
-            FilterChip(
-                selected = false,
-                onClick = onTagClick,
-                label = {
-                    Text(
-                        text = if (selectedTag.isEmpty()) "No tag" else selectedTag,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                },
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Label,
-                        contentDescription = "Select tag",
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
-            )
-        }
-    }
-}
 
 /**
  * Main content of the statistics screen.
@@ -186,13 +137,11 @@ fun FilterBar(
 fun StatisticsContent(
     statistics: SolveStatistics,
     recentSolves: List<Solve>,
-    calculateMovingAverages: (List<Solve>) -> Map<String, List<Double>>
+    calculateMovingAverages: (List<Solve>) -> Map<String, List<Double>>,
+    twistyTimerStats: TwistyTimerStats
 ) {
     // Calculate moving averages
     val movingAverages = calculateMovingAverages(recentSolves)
-
-    // Get the ViewModel to access the Twisty Timer stats
-    val viewModel: StatisticsViewModel = viewModel()
 
     // Use a fixed Column instead of LazyColumn to make the screen non-scrollable
     Column(
@@ -214,7 +163,7 @@ fun StatisticsContent(
                 .fillMaxWidth()
                 .padding(top = 16.dp) // Add margin between chart and stats
         ) {
-            TwistyTimerStatsTable(viewModel.twistyTimerStats)
+            TwistyTimerStatsTable(twistyTimerStats)
         }
     }
 }
@@ -266,23 +215,26 @@ fun SummaryMetrics(statistics: SolveStatistics) {
             TabRow(
                 selectedTabIndex = selectedTab.ordinal,
                 containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
             ) {
                 Tab(
                     selected = selectedTab == MetricsTab.Progress,
                     onClick = { selectedTab = MetricsTab.Progress },
-                    text = { Text("Progreso") }
-                )
+                    text = { Text("Progreso") },
+
+                    )
                 Tab(
                     selected = selectedTab == MetricsTab.Average,
                     onClick = { selectedTab = MetricsTab.Average },
-                    text = { Text("Promedio") }
-                )
+                    text = { Text("Promedio") },
+
+                    )
                 Tab(
                     selected = selectedTab == MetricsTab.Others,
                     onClick = { selectedTab = MetricsTab.Others },
-                    text = { Text("Otros") }
-                )
+                    text = { Text("Otros") },
+
+                    )
             }
 
             // Content based on selected tab
@@ -306,7 +258,9 @@ fun ProgressMetricsTable(statistics: SolveStatistics) {
             .padding(16.dp)
     ) {
         // Header row
-        MetricsTableHeader()
+        MetricsTableHeader(
+
+        )
 
         // Data rows with alternating background colors
         MetricsTableRow(
@@ -710,14 +664,25 @@ fun TwistyTimerStatsTable(stats: TwistyTimerStats) {
             TabRow(
                 selectedTabIndex = selectedTab,
                 containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                indicator = { tabPositions ->
+                    TabRowDefaults.Indicator(
+                        Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
+                        color = when (currentAppTheme) {
+                            AppThemeType.BLUE -> MaterialTheme.colorScheme.primary
+                            else -> androidx.compose.ui.graphics.Color.Gray
+                        }
+                    )
+                }
             ) {
                 tabTitles.forEachIndexed { index, title ->
                     Tab(
                         selected = selectedTab == index,
                         onClick = { selectedTab = index },
-                        text = { Text(title) }
-                    )
+                        text = { Text(title) },
+
+
+                        )
                 }
             }
 

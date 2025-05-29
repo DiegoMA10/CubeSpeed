@@ -21,4 +21,5 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "CubeSpeed"
-include(":app")
+include(":app", ":unityLibrary")
+project(":unityLibrary").projectDir = file("./unitycube/unityLibrary")

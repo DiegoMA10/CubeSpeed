@@ -311,7 +311,7 @@ fun TagInputDialog(
                         TextButton(
                             onClick = {
                                 onTagConfirmed(selectedTag)
-                                AppState.selectedTag = selectedTag
+                                AppState.updateTag(selectedTag)
                             }
                         ) {
                             Text("Confirm", color = dialogButtonTextColor)

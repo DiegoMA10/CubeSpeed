@@ -13,3 +13,12 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+Library/
+Temp/
+Obj/
+Build/
+Builds/
+Logs/
+MemoryCaptures/
+

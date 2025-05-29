@@ -5,27 +5,20 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.ui.Alignment
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import com.example.cubespeed.model.CubeType
 import com.example.cubespeed.navigation.Route
 import com.example.cubespeed.navigation.bottomNavItems
@@ -33,25 +26,32 @@ import com.example.cubespeed.repository.FirebaseRepository
 import com.example.cubespeed.state.AppState
 import com.example.cubespeed.ui.components.CubeTopBar
 import com.example.cubespeed.ui.components.FixedSizeAnimatedVisibility
+import com.example.cubespeed.ui.screens.algorithms.AlgorithmsScreen
 import com.example.cubespeed.ui.screens.history.HistoryScreen
 import com.example.cubespeed.ui.screens.settings.SettingsScreen
 import com.example.cubespeed.ui.screens.statistics.StatisticsScreen
-import com.example.cubespeed.ui.screens.algorithms.AlgorithmsScreen
+import com.example.cubespeed.ui.screens.timer.TimerScreenRefactored
 import com.example.cubespeed.ui.screens.timer.dialogs.CubeSelectionDialog
 import com.example.cubespeed.ui.screens.timer.dialogs.TagInputDialog
-import com.example.cubespeed.ui.screens.timer.TimerScreenRefactored
 import com.example.cubespeed.ui.theme.AppThemeType
 import kotlinx.coroutines.launch
 
 /**
  * Main screen that contains the bottom navigation and pager for the main tabs
+ * 
+ * @param navController Navigation controller for navigating to other screens
+ * @param onLogout Callback for when the user logs out
+ * @param onThemeChanged Callback for when the theme is changed
+ * @param onTimerRunningChange Callback for when the timer running state changes
+ * @param initialTab Initial tab to show (0 for Timer, 1 for History, 2 for Statistics, 3 for Algorithms)
  */
 @Composable
 fun MainTabsScreen(
     navController: NavController,
     onLogout: () -> Unit,
     onThemeChanged: (AppThemeType) -> Unit,
-    onTimerRunningChange: (Boolean) -> Unit
+    onTimerRunningChange: (Boolean) -> Unit,
+    initialTab: Int = 0 // Default to Timer tab
 ) {
     // State to track if timer is running
     var isTimerRunning by remember { mutableStateOf(false) }
@@ -90,7 +90,7 @@ fun MainTabsScreen(
         Route.Algorithms
     )
 
-    val pagerState = rememberPagerState { pages.size }
+    val pagerState = rememberPagerState(initialPage = initialTab) { pages.size }
     val coroutineScope = rememberCoroutineScope()
 
 
@@ -269,7 +269,7 @@ fun MainTabsScreen(
                 cubeTypes = cubeTypes,
                 onCubeSelected = {
                     selectedCubeType = it
-                    AppState.selectedCubeType = it
+                    AppState.updateCubeType(it)
                     showCubeSelectionDialog = false
                 },
                 onDismiss = { showCubeSelectionDialog = false }
@@ -282,7 +282,7 @@ fun MainTabsScreen(
                 currentTag = selectedTag,
                 onTagConfirmed = {
                     selectedTag = it
-                    AppState.selectedTag = it
+                    AppState.updateTag(it)
                     showTagDialog = false
                 },
                 onDismiss = { showTagDialog = false }

@@ -117,7 +117,7 @@ class TimerViewModel(
      */
     fun updateSelectedCubeType(cubeType: String) {
         selectedCubeType = cubeType
-        AppState.selectedCubeType = cubeType
+        AppState.updateCubeType(cubeType)
 
         if (isFirstCubeTypeChange) {
             isFirstCubeTypeChange = false
@@ -136,11 +136,19 @@ class TimerViewModel(
     }
 
     /**
+     * Updates the scramble directly.
+     * This is used when the user edits the scramble manually.
+     */
+    fun updateScramble(newScramble: String) {
+        scramble = newScramble
+    }
+
+    /**
      * Updates the selected tag.
      */
     fun updateSelectedTag(tag: String) {
         selectedTag = tag
-        AppState.selectedTag = tag
+        AppState.updateTag(tag)
 
         // Reset timer state when tag changes
         if (isRunning) {

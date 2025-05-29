@@ -3,6 +3,8 @@ package com.example.cubespeed.ui.screens.timer.components
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Refresh
@@ -44,6 +46,26 @@ fun ResponsiveScrambleBar(
     // State for showing the full scramble dialog
     var showFullScrambleDialog by remember { mutableStateOf(false) }
 
+    // State for showing the edit scramble dialog
+    var showEditScrambleDialog by remember { mutableStateOf(false) }
+    var editedScramble by remember { mutableStateOf(scramble) }
+
+    // Update editedScramble when scramble changes
+    LaunchedEffect(scramble) {
+        editedScramble = scramble
+    }
+
+    // Custom onScrambleChange handler that removes spaces when text is added
+    val handleScrambleChange: (String) -> Unit = { newValue ->
+        // If the current value is just a space and the new value has additional text,
+        // remove the space and only keep the new text
+        if (editedScramble.trim().isEmpty() && newValue.trim().isNotEmpty()) {
+            editedScramble = newValue.trim()
+        } else {
+            editedScramble = newValue
+        }
+    }
+
     // Check if we're on a tablet or in landscape mode
     val isTablet = ScreenUtils.isTablet()
     val isLandscape = ScreenUtils.isLandscape()
@@ -64,6 +86,7 @@ fun ResponsiveScrambleBar(
     Column(
         modifier = modifier
             .fillMaxWidth()
+            .wrapContentHeight()
     ) {
         Column(
             modifier = Modifier.padding(5.dp)
@@ -131,7 +154,7 @@ fun ResponsiveScrambleBar(
             ) {
                 // Edit icon
                 IconButton(
-                    onClick = { onEdit(scramble) },
+                    onClick = { showEditScrambleDialog = true },
                     modifier = Modifier.size(36.dp)
                 ) {
                     Icon(
@@ -167,10 +190,25 @@ fun ResponsiveScrambleBar(
             onDismiss = { showFullScrambleDialog = false }
         )
     }
+
+    // Show the edit scramble dialog if requested
+    if (showEditScrambleDialog) {
+        EditScrambleDialog(
+            scramble = editedScramble,
+            onScrambleChange = handleScrambleChange,
+            onConfirm = {
+                // If the edited scramble is empty, set it to a single space to show the solved cube SVG
+                val finalScramble = if (editedScramble.trim().isEmpty()) " " else editedScramble
+                onEdit(finalScramble)
+                showEditScrambleDialog = false
+            },
+            onDismiss = { showEditScrambleDialog = false }
+        )
+    }
 }
 
 /**
- * A dialog that displays the full scramble.
+ * A dialog that displays the full scramble with scrolling capability.
  *
  * @param scramble The scramble to display
  * @param onDismiss Callback for when the dialog is dismissed
@@ -198,11 +236,75 @@ private fun FullScrambleDialog(
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
 
+                // Make the scramble text scrollable
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(IntrinsicSize.Min)
+                        .heightIn(min = 100.dp, max = 200.dp) // Reduced max height to about half screen
+                ) {
+                    Text(
+                        text = scramble,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .verticalScroll(rememberScrollState())
+                            .padding(bottom = 16.dp)
+                    )
+                }
+
+            }
+        }
+    }
+}
+
+/**
+ * A dialog that allows editing the scramble.
+ *
+ * @param scramble The current scramble
+ * @param onScrambleChange Callback for when the scramble changes
+ * @param onConfirm Callback for when the edit is confirmed
+ * @param onDismiss Callback for when the dialog is dismissed
+ */
+@Composable
+private fun EditScrambleDialog(
+    scramble: String,
+    onScrambleChange: (String) -> Unit,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = MaterialTheme.shapes.medium,
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 8.dp
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(16.dp)
+                    .fillMaxWidth()
+            ) {
                 Text(
-                    text = scramble,
-                    style = MaterialTheme.typography.bodyLarge,
+                    text = "Editar Scramble",
+                    style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(bottom = 16.dp)
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+
+                // TextField for editing the scramble
+                TextField(
+                    value = scramble,
+                    onValueChange = onScrambleChange,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                        unfocusedIndicatorColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                    )
                 )
 
                 Row(
@@ -212,7 +314,15 @@ private fun FullScrambleDialog(
                     TextButton(
                         onClick = onDismiss
                     ) {
-                        Text("Close")
+                        Text("Cancelar")
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Button(
+                        onClick = onConfirm
+                    ) {
+                        Text("Guardar")
                     }
                 }
             }

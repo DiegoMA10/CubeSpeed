@@ -36,6 +36,9 @@ fun PLLAlgorithmsScreen(navController: NavController) {
     val pllCases = remember { AlgUtils.getAllPLLCases() }
     val context = LocalContext.current
 
+    // Add a flag to prevent multiple rapid back button presses
+    var isNavigatingBack by remember { mutableStateOf(false) }
+
     // Show PLL algorithm detail dialog when a PLL algorithm is selected
     if (showPLLAlgorithmDialog && selectedPLLAlgorithm != null) {
         PLLAlgorithmDetailDialogImpl(
@@ -56,7 +59,14 @@ fun PLLAlgorithmsScreen(navController: NavController) {
                 modifier = Modifier.padding(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = { navController.popBackStack() }) {
+                IconButton(
+                    onClick = {
+                        if (!isNavigatingBack) {
+                            isNavigatingBack = true
+                            navController.popBackStack()
+                        }
+                    }
+                ) {
                     Icon(
                         imageVector = Icons.Default.ArrowBack,
                         contentDescription = "Back",
