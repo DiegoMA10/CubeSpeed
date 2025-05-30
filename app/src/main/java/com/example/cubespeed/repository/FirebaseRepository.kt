@@ -4,7 +4,7 @@ import android.util.Log
 import com.example.cubespeed.model.CubeType
 import com.example.cubespeed.model.Solve
 import com.example.cubespeed.model.SolveStatus
-import com.example.cubespeed.ui.screens.history.SortOrder
+import com.example.cubespeed.ui.screens.history.enums.SortOrder
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.auth
@@ -136,7 +136,10 @@ class FirebaseRepository {
         try {
             // Create the stats document ID
             val statsDocId = "${cubeType.name}_$tagId"
-            Log.d("FirebaseRepository", "Getting stats for document ID: '$statsDocId' (cube type: '${cubeType.name}', display name: '${cubeType.displayName}', tag: '$tagId')")
+            Log.d(
+                "FirebaseRepository",
+                "Getting stats for document ID: '$statsDocId' (cube type: '${cubeType.name}', display name: '${cubeType.displayName}', tag: '$tagId')"
+            )
 
             // Check if there are any stats documents for this user
             val allStatsQuery = firestore.collection("users")
@@ -172,7 +175,10 @@ class FirebaseRepository {
                     ao50 = statsDoc.getDouble("ao50") ?: 0.0,
                     ao100 = statsDoc.getDouble("ao100") ?: 0.0
                 )
-                Log.d("FirebaseRepository", "Loaded stats for '$statsDocId': count=${stats.count}, best=${stats.best}, ao5=${stats.ao5}")
+                Log.d(
+                    "FirebaseRepository",
+                    "Loaded stats for '$statsDocId': count=${stats.count}, best=${stats.best}, ao5=${stats.ao5}"
+                )
                 return stats
             } else {
                 Log.d("FirebaseRepository", "No stats document found for '$statsDocId'")
@@ -412,7 +418,11 @@ class FirebaseRepository {
                     val cubeType = try {
                         CubeType.valueOf(cubeTypeStr)
                     } catch (e: Exception) {
-                        Log.e("FirebaseRepository", "Error converting cube type '$cubeTypeStr' to enum, defaulting to CUBE_3X3", e)
+                        Log.e(
+                            "FirebaseRepository",
+                            "Error converting cube type '$cubeTypeStr' to enum, defaulting to CUBE_3X3",
+                            e
+                        )
                         CubeType.CUBE_3X3
                     }
 

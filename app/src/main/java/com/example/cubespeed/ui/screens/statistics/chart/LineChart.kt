@@ -14,20 +14,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.cubespeed.ui.theme.ChartAxisLabelColorLight
-import com.example.cubespeed.ui.theme.ChartAxisLabelColorDark
-import com.example.cubespeed.ui.theme.ChartGridLineColorLight
-import com.example.cubespeed.ui.theme.ChartGridLineColorDark
-import com.example.cubespeed.ui.theme.isAppInLightTheme
+import com.example.cubespeed.ui.theme.*
 import kotlin.math.max
 import kotlin.math.min
 

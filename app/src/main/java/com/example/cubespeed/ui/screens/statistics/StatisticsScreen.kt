@@ -21,7 +21,9 @@ import com.example.cubespeed.model.Solve
 import com.example.cubespeed.model.SolveStatus
 import com.example.cubespeed.repository.SolveStatistics
 import com.example.cubespeed.state.AppState
-import com.example.cubespeed.ui.screens.statistics.chart.TwistyTimerChart
+import com.example.cubespeed.ui.screens.statistics.chart.CubeSpeedChart
+import com.example.cubespeed.ui.screens.statistics.viewmodel.Statistics
+import com.example.cubespeed.ui.screens.statistics.viewmodel.StatisticsViewModel
 import com.example.cubespeed.ui.screens.timer.dialogs.CubeSelectionDialog
 import com.example.cubespeed.ui.screens.timer.dialogs.TagInputDialog
 import com.example.cubespeed.ui.screens.timer.utils.formatTime
@@ -96,7 +98,7 @@ fun StatisticsScreen(
                     statistics = viewModel.statistics,
                     recentSolves = viewModel.recentSolves,
                     calculateMovingAverages = viewModel::calculateMovingAverages,
-                    twistyTimerStats = viewModel.twistyTimerStats
+                    stadistics = viewModel.stadistics
                 )
             }
         }
@@ -138,7 +140,7 @@ fun StatisticsContent(
     statistics: SolveStatistics,
     recentSolves: List<Solve>,
     calculateMovingAverages: (List<Solve>) -> Map<String, List<Double>>,
-    twistyTimerStats: TwistyTimerStats
+    stadistics: Statistics
 ) {
     // Calculate moving averages
     val movingAverages = calculateMovingAverages(recentSolves)
@@ -157,28 +159,28 @@ fun StatisticsContent(
             SolveTimeChart(recentSolves, movingAverages)
         }
 
-        // Twisty Timer style statistics table at the bottom with margin
+        // CubeSpeed style statistics table at the bottom with margin
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 16.dp) // Add margin between chart and stats
         ) {
-            TwistyTimerStatsTable(twistyTimerStats)
+            CubeSpeedStatsTable(stadistics)
         }
     }
 }
 
 /**
  * Chart displaying solve times and moving averages.
- * Uses the TwistyTimerChart composable for rendering.
+ * Uses the CubeSpeedChart composable for rendering.
  */
 @Composable
 fun SolveTimeChart(
     solves: List<Solve>,
     movingAverages: Map<String, List<Double>>
 ) {
-    // Render the chart using the TwistyTimerChart composable
-    TwistyTimerChart(
+    // Render the chart using the CubeSpeedChart composable
+    CubeSpeedChart(
         solves = solves,
         movingAverages = movingAverages,
         modifier = Modifier
@@ -640,11 +642,11 @@ fun formatDateForDisplay(dateString: String): String {
 }
 
 /**
- * Twisty Timer style statistics table.
+ * CubeSpeed style statistics table.
  * Displays all the statistics in a clear table format.
  */
 @Composable
-fun TwistyTimerStatsTable(stats: TwistyTimerStats) {
+fun CubeSpeedStatsTable(stats: Statistics) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
@@ -700,7 +702,7 @@ fun TwistyTimerStatsTable(stats: TwistyTimerStats) {
  * Tab for displaying time statistics.
  */
 @Composable
-fun TimesTab(stats: TwistyTimerStats) {
+fun TimesTab(stats: Statistics) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -743,7 +745,7 @@ fun TimesTab(stats: TwistyTimerStats) {
  * Tab for displaying average statistics.
  */
 @Composable
-fun AveragesTab(stats: TwistyTimerStats) {
+fun AveragesTab(stats: Statistics) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -816,7 +818,7 @@ fun AveragesTab(stats: TwistyTimerStats) {
  * Tab for displaying count statistics.
  */
 @Composable
-fun CountsTab(stats: TwistyTimerStats) {
+fun CountsTab(stats: Statistics) {
     Column(
         modifier = Modifier
             .fillMaxWidth()

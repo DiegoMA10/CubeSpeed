@@ -1,4 +1,4 @@
-package com.example.cubespeed.ui.screens.history
+package com.example.cubespeed.ui.screens.history.dialogs
 
 // Import the ScrambleVisualization composable
 import androidx.compose.foundation.clickable
@@ -22,6 +22,8 @@ import com.example.cubespeed.model.Solve
 import com.example.cubespeed.model.SolveStatus
 import com.example.cubespeed.repository.FirebaseRepository
 import com.example.cubespeed.state.AppState
+import com.example.cubespeed.ui.screens.history.formatTime
+import com.example.cubespeed.ui.screens.history.models.ScrambleVisualization
 import com.example.cubespeed.ui.screens.timer.dialogs.CommentDialog
 import com.example.cubespeed.ui.screens.timer.utils.getEffectiveTime
 import com.example.cubespeed.ui.theme.isAppInLightTheme

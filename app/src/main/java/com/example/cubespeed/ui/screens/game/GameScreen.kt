@@ -8,7 +8,7 @@ import androidx.navigation.NavController
 
 /**
  * Game screen that launches the Unity game activity
- * 
+ *
  * @param navController Navigation controller for navigating back
  */
 @Composable

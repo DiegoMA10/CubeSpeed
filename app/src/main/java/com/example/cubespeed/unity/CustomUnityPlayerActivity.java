@@ -3,7 +3,6 @@ package com.example.cubespeed.unity;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.KeyEvent;
 import com.unity3d.player.UnityPlayerGameActivity;
 import com.example.cubespeed.MainActivity;
@@ -17,14 +16,12 @@ import com.example.cubespeed.MainActivity;
  * which will then navigate back to the main app.
  */
 public class CustomUnityPlayerActivity extends Activity {
-    private static final String TAG = "CustomUnityActivity";
     private boolean unityLaunched = false;
     private long launchTime = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Log.d(TAG, "onCreate: Launching Unity activity");
 
         // Launch Unity activity directly
         Intent intent = new Intent(this, UnityPlayerGameActivity.class);
@@ -43,9 +40,7 @@ public class CustomUnityPlayerActivity extends Activity {
      */
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
-        Log.d(TAG, "onKeyDown: keyCode=" + keyCode);
         if (keyCode == KeyEvent.KEYCODE_BACK) {
-            Log.d(TAG, "onKeyDown: Back button pressed, launching MainActivity");
             // Launch MainActivity and finish this activity
             Intent intent = new Intent(this, MainActivity.class);
             intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -65,24 +60,19 @@ public class CustomUnityPlayerActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
-        Log.d(TAG, "onResume: Activity resumed");
 
         // Calculate time since Unity activity was launched
         long timeSinceLaunch = System.currentTimeMillis() - launchTime;
-        Log.d(TAG, "onResume: Time since launch: " + timeSinceLaunch + "ms");
 
         // If Unity was launched and enough time has passed (more than 1 second),
         // assume the user pressed back in the Unity activity
         if (unityLaunched && timeSinceLaunch > 1000) {
-            Log.d(TAG, "onResume: Enough time passed, launching MainActivity");
             // If this activity becomes visible again (after Unity activity is closed),
             // launch MainActivity and finish this activity
             Intent intent = new Intent(this, MainActivity.class);
             intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(intent);
             finish();
-        } else {
-            Log.d(TAG, "onResume: Not enough time passed, staying in current activity");
         }
     }
 }

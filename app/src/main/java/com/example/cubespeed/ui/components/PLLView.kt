@@ -20,7 +20,7 @@ import androidx.compose.ui.unit.dp
 import com.example.cubespeed.utils.AlgUtils
 
 /**
- * PLL preview inspirado en Twisty Timer:
+ * PLL preview inspirado en CubeSpeed:
  * - Central 3×3
  * - Franjas auxiliares rectangulares en cada lado
  * - Diseño compacto con margen extra en top y left

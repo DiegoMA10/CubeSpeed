@@ -41,37 +41,34 @@ android {
     }
 }
 
-repositories {
-
-}
-
 dependencies {
     // Unity Library
     implementation(project(":unityLibrary"))
 
+    // AndroidX Core
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
-    implementation("androidx.compose.animation:animation:1.7.8") // O superior
 
+    // Compose UI
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    implementation("androidx.compose.animation:animation:1.7.8")
+    implementation("androidx.compose.material:material-icons-extended:1.7.8")
+    implementation("androidx.compose.foundation:foundation:1.7.8")
+    implementation("androidx.compose.foundation:foundation-layout:1.7.8")
+    implementation("androidx.compose.ui:ui:1.9.0-alpha01")
 
     // Navigation Compose
     implementation(libs.androidx.navigation.compose)
-
-    // Material Icons Extended
-    implementation("androidx.compose.material:material-icons-extended:1.7.8")
 
     // Firebase
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.functions)
-
-    // Firebase Auth with specific version
     implementation(libs.firebase.auth)
 
     // Google Play Services
@@ -82,15 +79,12 @@ dependencies {
     // Accompanist for system UI controller
     implementation("com.google.accompanist:accompanist-systemuicontroller:0.32.0")
 
-    // Jetpack Compose Pager (replaces Accompanist Pager)
-    implementation("androidx.compose.foundation:foundation:1.7.8")
-    implementation("androidx.compose.foundation:foundation-layout:1.7.8")
-
+    // Cube-specific libraries
     implementation("org.worldcubeassociation.tnoodle:lib-scrambles:0.19.2")
     implementation("org.worldcubeassociation.tnoodle:lib-svglite:0.19.2")
     implementation("com.caverock:androidsvg-aar:1.4")
-    implementation("androidx.compose.ui:ui:1.9.0-alpha01")
 
+    // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

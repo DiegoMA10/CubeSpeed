@@ -1,4 +1,4 @@
-package com.example.cubespeed.ui.screens.statistics
+package com.example.cubespeed.ui.screens.statistics.viewmodel
 
 import android.util.Log
 import androidx.compose.runtime.getValue
@@ -13,15 +13,16 @@ import com.example.cubespeed.repository.FirebaseRepository
 import com.example.cubespeed.repository.SolveStatistics
 import com.example.cubespeed.state.AppState
 import com.google.firebase.Timestamp
+import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.*
 
 /**
- * Data class to hold all the statistics for the Twisty Timer style statistics panel.
+ * Data class to hold all the statistics for the CubeSpeed style statistics panel.
  */
-data class TwistyTimerStats(
+data class Statistics(
     // Counts
     val totalSolves: Int = 0,
     val validSolves: Int = 0,
@@ -65,7 +66,7 @@ class StatisticsViewModel : ViewModel() {
     var statistics by mutableStateOf(SolveStatistics())
         private set
 
-    var twistyTimerStats by mutableStateOf(TwistyTimerStats())
+    var stadistics by mutableStateOf(Statistics())
         private set
 
     var recentSolves by mutableStateOf<List<Solve>>(emptyList())
@@ -78,7 +79,7 @@ class StatisticsViewModel : ViewModel() {
         private set
 
     // Listener registration for real-time updates
-    private var solvesListener: com.google.firebase.firestore.ListenerRegistration? = null
+    private var solvesListener: ListenerRegistration? = null
 
     // Initialize with default values
     init {
@@ -204,8 +205,8 @@ class StatisticsViewModel : ViewModel() {
                     // Update the state
                     recentSolves = limitedSolves
 
-                    // Calculate Twisty Timer style statistics
-                    calculateTwistyTimerStats(limitedSolves)
+                    // Calculate CubeSpeed style statistics
+                    calculateCubeSpeedStats(limitedSolves)
 
                     // Set loading to false after data is loaded
                     isLoading = false
@@ -218,11 +219,11 @@ class StatisticsViewModel : ViewModel() {
     }
 
     /**
-     * Calculates Twisty Timer style statistics from a list of solves.
+     * Calculates CubeSpeed style statistics from a list of solves.
      */
-    private fun calculateTwistyTimerStats(solves: List<Solve>) {
+    private fun calculateCubeSpeedStats(solves: List<Solve>) {
         if (solves.isEmpty()) {
-            twistyTimerStats = TwistyTimerStats()
+            stadistics = Statistics()
             return
         }
 
@@ -255,7 +256,7 @@ class StatisticsViewModel : ViewModel() {
         val standardDeviation = calculateStandardDeviation(solves)
 
         // Update the state
-        twistyTimerStats = TwistyTimerStats(
+        stadistics = Statistics(
             totalSolves = totalSolves,
             validSolves = validSolves,
             dnfCount = dnfCount,
@@ -410,7 +411,7 @@ class StatisticsViewModel : ViewModel() {
     /**
      * Calculates the average time for a list of solves.
      * Handles PLUS2 penalties by adding 2 seconds.
-     * Returns -1.0 if any solve is DNF (Twisty Timer style).
+     * Returns -1.0 if any solve is DNF (CubeSpeed style).
      */
     private fun calculateAverageOfN(solves: List<Solve>, n: Int): Double {
         if (solves.size < n) return 0.0

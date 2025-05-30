@@ -26,7 +26,7 @@ import com.example.cubespeed.ui.theme.LocalThemePreference
 import com.example.cubespeed.ui.theme.AppThemeType
 
 /**
- * A composable that displays a line chart in the style of Twisty Timer.
+ * A composable that displays a line chart in the style of CubeSpeed.
  * Shows solve times and moving averages without any interactive gestures.
  *
  * @param solves The list of solves to display
@@ -34,7 +34,7 @@ import com.example.cubespeed.ui.theme.AppThemeType
  * @param modifier The modifier to apply to the chart
  */
 @Composable
-fun TwistyTimerChart(
+fun CubeSpeedChart(
     solves: List<Solve>,
     movingAverages: Map<String, List<Double>>,
     modifier: Modifier = Modifier

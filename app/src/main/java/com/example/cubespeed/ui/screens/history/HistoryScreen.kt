@@ -1,9 +1,13 @@
 package com.example.cubespeed.ui.screens.history
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -12,10 +16,12 @@ import com.example.cubespeed.model.CubeType
 import com.example.cubespeed.state.AppState
 import com.example.cubespeed.ui.screens.history.components.SearchFilterBar
 import com.example.cubespeed.ui.screens.history.components.SelectionTopBar
+import com.example.cubespeed.ui.screens.history.viewmodels.HistoryViewModel
 import com.example.cubespeed.ui.screens.timer.dialogs.CubeSelectionDialog
 import com.example.cubespeed.ui.screens.timer.dialogs.TagInputDialog
 import com.example.cubespeed.ui.theme.dialogButtonTextColor
 import com.example.cubespeed.ui.theme.isAppInLightTheme
+import com.example.cubespeed.ui.screens.history.enums.SortOrder
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -33,8 +39,9 @@ fun HistoryScreen(navController: NavController? = null) {
     // Observe changes to AppState and update ViewModel
     LaunchedEffect(AppState.selectedCubeType, AppState.selectedTag, AppState.historyRefreshTrigger) {
         // Check if filter criteria have changed
-        if (viewModel.selectedCubeType != AppState.selectedCubeType || 
-            viewModel.selectedTag != AppState.selectedTag) {
+        if (viewModel.selectedCubeType != AppState.selectedCubeType ||
+            viewModel.selectedTag != AppState.selectedTag
+        ) {
             // Update ViewModel with new filter criteria
             if (viewModel.selectedCubeType != AppState.selectedCubeType) {
                 viewModel.updateSelectedCubeType(AppState.selectedCubeType)
@@ -112,7 +119,7 @@ fun HistoryScreen(navController: NavController? = null) {
     if (viewModel.showCubeSelectionDialog) {
         CubeSelectionDialog(
             cubeTypes = cubeTypes,
-            onCubeSelected = { 
+            onCubeSelected = {
                 viewModel.updateSelectedCubeType(it)
                 viewModel.hideCubeSelectionDialog()
             },
@@ -124,7 +131,7 @@ fun HistoryScreen(navController: NavController? = null) {
     if (viewModel.showTagDialog) {
         TagInputDialog(
             currentTag = viewModel.selectedTag,
-            onTagConfirmed = { 
+            onTagConfirmed = {
                 viewModel.updateSelectedTag(it)
                 viewModel.hideTagDialog()
             },
@@ -163,10 +170,6 @@ fun HistoryScreen(navController: NavController? = null) {
     }
 }
 
-// Sort order enum
-enum class SortOrder {
-    DATE_DESC, DATE_ASC, TIME_ASC, TIME_DESC
-}
 
 // Format date to a readable string (day and month only)
 fun formatDate(date: Date): String {

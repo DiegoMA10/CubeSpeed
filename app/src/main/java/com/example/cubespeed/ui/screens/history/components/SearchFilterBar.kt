@@ -13,7 +13,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.cubespeed.ui.screens.history.SortOrder
+import com.example.cubespeed.ui.screens.history.enums.SortOrder
 import com.example.cubespeed.ui.theme.AppThemeType
 import com.example.cubespeed.ui.theme.LocalThemePreference
 
@@ -32,6 +32,7 @@ private fun getIconColor(isSelected: Boolean): Color {
                 AppThemeType.BLUE -> MaterialTheme.colorScheme.secondary
             }
         }
+
         else -> {
             // Non-selected icons are gray in all themes
             Color.Gray

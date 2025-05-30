@@ -1,4 +1,4 @@
-package com.example.cubespeed.ui.screens.history
+package com.example.cubespeed.ui.screens.history.dialogs
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*

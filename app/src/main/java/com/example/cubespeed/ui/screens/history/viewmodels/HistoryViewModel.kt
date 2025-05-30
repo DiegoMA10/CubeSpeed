@@ -1,14 +1,14 @@
-package com.example.cubespeed.ui.screens.history
+package com.example.cubespeed.ui.screens.history.viewmodels
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.cubespeed.model.CubeType
 import com.example.cubespeed.model.Solve
 import com.example.cubespeed.repository.FirebaseRepository
 import com.example.cubespeed.state.AppState
+import com.example.cubespeed.ui.screens.history.enums.SortOrder
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.launch

@@ -27,6 +27,7 @@ import com.example.cubespeed.model.Solve
 import com.example.cubespeed.model.SolveStatus
 import com.example.cubespeed.ui.screens.timer.utils.getEffectiveTime
 import com.example.cubespeed.ui.theme.isAppInLightTheme
+import com.example.cubespeed.ui.screens.history.dialogs.TimeDetailDialog
 
 
 /**

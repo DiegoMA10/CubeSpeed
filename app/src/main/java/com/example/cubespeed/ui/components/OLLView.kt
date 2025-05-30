@@ -22,7 +22,7 @@ import androidx.compose.ui.unit.dp
 import com.example.cubespeed.utils.AlgUtils
 
 /**
- * OLL preview inspirado en Twisty Timer:
+ * OLL preview inspirado en CubeSpeed:
  * - Central 3×3
  * - Franjas auxiliares rectangulares en cada lado
  * - Diseño compacto con margen extra en top y left
@@ -111,7 +111,7 @@ fun OLLView(
 
 @Preview
 @Composable
-fun PreviewTwistyOLL() {
+fun PreviewCubeSpeedOLL() {
     // Using the getCaseState method to get a 21-character string
     val state = AlgUtils.getCaseState(LocalContext.current, "OLL", "OLL 01")
     OLLView(
@@ -124,7 +124,7 @@ fun PreviewTwistyOLL() {
 
 @Preview
 @Composable
-fun PreviewTwistyOLLWithoutPLL() {
+fun PreviewCubeSpeedOLLWithoutPLL() {
     // Using the getCaseState method to get a 21-character string
     val state = AlgUtils.getCaseState(LocalContext.current, "OLL", "OLL 01")
     OLLView(

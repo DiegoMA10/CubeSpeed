@@ -1,4 +1,4 @@
-package com.example.cubespeed.ui.screens.history
+package com.example.cubespeed.ui.screens.history.models
 
 
 import android.graphics.Bitmap

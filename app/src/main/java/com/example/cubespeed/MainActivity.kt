@@ -21,7 +21,6 @@ import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
 
-
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -32,10 +31,9 @@ class MainActivity : ComponentActivity() {
         // Initialize AppState with context
         AppState.initialize(applicationContext)
 
-        // Get initial theme preference (only used for CompositionLocalProvider)
+        // Get initial theme preference
         val sharedPrefs = getSharedPreferences("cubespeed_settings", 0)
         val themeOrdinal = sharedPrefs.getInt("theme_type", AppThemeType.BLUE.ordinal)
-        val themeType = AppThemeType.entries[themeOrdinal]
 
         // Navigation bar and status bar colors will be set using accompanist-systemuicontroller
 
@@ -137,5 +135,3 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
-
-// FixedSizeAnimatedVisibility has been moved to ui.components.AnimationComponents
