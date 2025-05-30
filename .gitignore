@@ -14,6 +14,7 @@
 .cxx
 local.properties
 
+# Unity related
 Library/
 Temp/
 Obj/
@@ -23,3 +24,12 @@ Logs/
 MemoryCaptures/
 Il2CppOutputProject/
 
+# Unity generated files in Android project
+unitycube/unityLibrary/src/main/Il2CppOutputProject/
+unitycube/unityLibrary/build/
+unitycube/unityLibrary/.cxx/
+unitycube/unityLibrary/symbols/
+unitycube/launcher/build/
+
+# Output files
+.output.txt
