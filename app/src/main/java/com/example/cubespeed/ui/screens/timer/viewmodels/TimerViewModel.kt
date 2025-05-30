@@ -458,6 +458,9 @@ class TimerViewModel(
 
                 // Increment stats refresh trigger to update statistics
                 statsRefreshTrigger += 1
+
+                // Increment history refresh trigger to update history screen
+                AppState.historyRefreshTrigger += 1
             }
         }
     }
