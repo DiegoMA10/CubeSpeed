@@ -19,11 +19,11 @@ import androidx.navigation.NavController
 import com.example.cubespeed.model.CubeType
 import com.example.cubespeed.model.Solve
 import com.example.cubespeed.model.SolveStatus
-import com.example.cubespeed.repository.SolveStatistics
+import com.example.cubespeed.model.SolveStatistics
+import com.example.cubespeed.model.Statistics
 import com.example.cubespeed.state.AppState
 import com.example.cubespeed.ui.screens.statistics.chart.CubeSpeedChart
-import com.example.cubespeed.ui.screens.statistics.viewmodel.Statistics
-import com.example.cubespeed.ui.screens.statistics.viewmodel.StatisticsViewModel
+import com.example.cubespeed.ui.screens.statistics.viewmodels.StatisticsViewModel
 import com.example.cubespeed.ui.screens.timer.dialogs.CubeSelectionDialog
 import com.example.cubespeed.ui.screens.timer.dialogs.TagInputDialog
 import com.example.cubespeed.ui.screens.timer.utils.formatTime

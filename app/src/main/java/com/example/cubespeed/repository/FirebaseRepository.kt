@@ -4,6 +4,7 @@ import android.util.Log
 import com.example.cubespeed.model.CubeType
 import com.example.cubespeed.model.Solve
 import com.example.cubespeed.model.SolveStatus
+import com.example.cubespeed.model.SolveStatistics
 import com.example.cubespeed.ui.screens.history.enums.SortOrder
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
@@ -14,21 +15,6 @@ import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.functions.ktx.functions
 import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.tasks.await
-
-/**
- * Data class to hold statistics for a specific cube type and tag
- */
-data class SolveStatistics(
-    val count: Int = 0,
-    val validCount: Int = 0,
-    val best: Long = 0,
-    val average: Double = 0.0,
-    val deviation: Double = 0.0,
-    val ao5: Double = 0.0,
-    val ao12: Double = 0.0,
-    val ao50: Double = 0.0,
-    val ao100: Double = 0.0
-)
 
 class FirebaseRepository {
     private val auth: FirebaseAuth = Firebase.auth

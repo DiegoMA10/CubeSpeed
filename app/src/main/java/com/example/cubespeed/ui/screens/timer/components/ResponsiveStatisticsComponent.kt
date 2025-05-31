@@ -9,8 +9,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.cubespeed.model.CubeType
+import com.example.cubespeed.model.SolveStatistics
 import com.example.cubespeed.repository.FirebaseRepository
-import com.example.cubespeed.repository.SolveStatistics
 import com.example.cubespeed.ui.screens.history.models.ScrambleVisualization
 import com.example.cubespeed.ui.screens.timer.utils.formatDouble
 import com.example.cubespeed.ui.screens.timer.utils.formatTime

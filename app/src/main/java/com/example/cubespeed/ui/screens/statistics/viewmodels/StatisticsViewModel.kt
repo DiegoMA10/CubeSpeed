@@ -1,4 +1,4 @@
-package com.example.cubespeed.ui.screens.statistics.viewmodel
+package com.example.cubespeed.ui.screens.statistics.viewmodels
 
 import android.util.Log
 import androidx.compose.runtime.getValue
@@ -9,8 +9,9 @@ import androidx.lifecycle.viewModelScope
 import com.example.cubespeed.model.CubeType
 import com.example.cubespeed.model.Solve
 import com.example.cubespeed.model.SolveStatus
+import com.example.cubespeed.model.Statistics
+import com.example.cubespeed.model.SolveStatistics
 import com.example.cubespeed.repository.FirebaseRepository
-import com.example.cubespeed.repository.SolveStatistics
 import com.example.cubespeed.state.AppState
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.ListenerRegistration
@@ -18,39 +19,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.*
-
-/**
- * Data class to hold all the statistics for the CubeSpeed style statistics panel.
- */
-data class Statistics(
-    // Counts
-    val totalSolves: Int = 0,
-    val validSolves: Int = 0,
-    val dnfCount: Int = 0,
-    val plus2Count: Int = 0,
-
-    // Times
-    val bestTime: Long = 0,
-    val worstTime: Long = 0,
-
-    // Averages
-    val globalAverage: Double = -1.0,
-
-    // Best averages
-    val bestAo5: Double = -1.0,
-    val bestAo12: Double = -1.0,
-    val bestAo50: Double = -1.0,
-    val bestAo100: Double = -1.0,
-
-    // Latest averages
-    val latestAo5: Double = -1.0,
-    val latestAo12: Double = -1.0,
-    val latestAo50: Double = -1.0,
-    val latestAo100: Double = -1.0,
-
-    // Standard deviation
-    val standardDeviation: Double = 0.0
-)
 
 /**
  * ViewModel for the Statistics screen.

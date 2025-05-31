@@ -58,6 +58,10 @@ fun LoginScreen(
     var password by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var showPasswordResetDialog by remember { mutableStateOf(false) }
+    var resetEmail by remember { mutableStateOf("") }
+    var resetEmailSent by remember { mutableStateOf(false) }
+    var resetErrorMessage by remember { mutableStateOf<String?>(null) }
 
     val focusManager = LocalFocusManager.current
     val auth = remember { Firebase.auth }
@@ -250,7 +254,7 @@ fun LoginScreen(
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(bottom = 16.dp)
+                            .padding(bottom = 4.dp)
                     )
 
                     // Error message
@@ -261,6 +265,29 @@ fun LoginScreen(
                             style = MaterialTheme.typography.bodyMedium,
                             modifier = Modifier.padding(bottom = 16.dp)
                         )
+                    }
+
+                    // Forgot Password link
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp),
+                        contentAlignment = Alignment.CenterStart
+                    ) {
+                        TextButton(
+                            onClick = {
+                                // Will implement password reset dialog here
+                                showPasswordResetDialog = true
+                            },
+                            contentPadding = PaddingValues(horizontal = 0.dp)
+                        ) {
+                            Text(
+                                "Forgot Password?",
+                                color = MaterialTheme.colorScheme.primary,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
                     }
 
                     // Login button
@@ -399,6 +426,160 @@ fun LoginScreen(
             }
         }
     }
+
+    // Password Reset Dialog
+    if (showPasswordResetDialog) {
+        AlertDialog(
+            onDismissRequest = { 
+                showPasswordResetDialog = false
+                resetEmail = ""
+                resetEmailSent = false
+                resetErrorMessage = null
+            },
+            title = { 
+                Text(
+                    text = if (resetEmailSent) "Email Sent" else "Reset Password",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
+                ) 
+            },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp)
+                ) {
+                    if (resetEmailSent) {
+                        // Success message
+                        Text(
+                            text = "A password reset link has been sent to $resetEmail. Please check your email.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    } else {
+                        // Email input field
+                        Text(
+                            text = "Enter your email address and we'll send you a link to reset your password.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.padding(bottom = 16.dp)
+                        )
+
+                        OutlinedTextField(
+                            value = resetEmail,
+                            onValueChange = { resetEmail = it },
+                            label = { Text("Email") },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Email,
+                                imeAction = ImeAction.Done
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onDone = { focusManager.clearFocus() }
+                            ),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f),
+                                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                                unfocusedLabelColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 16.dp)
+                        )
+
+                        // Error message
+                        if (resetErrorMessage != null) {
+                            Text(
+                                text = resetErrorMessage!!,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.padding(bottom = 8.dp)
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                if (resetEmailSent) {
+                    TextButton(
+                        onClick = { 
+                            showPasswordResetDialog = false
+                            resetEmail = ""
+                            resetEmailSent = false
+                            resetErrorMessage = null
+                        }
+                    ) {
+                        Text("Close")
+                    }
+                } else {
+                    TextButton(
+                        onClick = {
+                            if (resetEmail.isBlank()) {
+                                resetErrorMessage = "Please enter your email address"
+                            } else {
+                                // Send password reset email
+                                isLoading = true
+                                resetErrorMessage = null
+                                sendPasswordResetEmail(auth, resetEmail, 
+                                    onSuccess = {
+                                        isLoading = false
+                                        resetEmailSent = true
+                                    },
+                                    onError = { error ->
+                                        isLoading = false
+                                        resetErrorMessage = error
+                                    }
+                                )
+                            }
+                        },
+                        enabled = !isLoading
+                    ) {
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Text("Send Reset Link")
+                        }
+                    }
+                }
+            },
+            dismissButton = {
+                if (!resetEmailSent) {
+                    TextButton(
+                        onClick = { 
+                            showPasswordResetDialog = false
+                            resetEmail = ""
+                            resetErrorMessage = null
+                        }
+                    ) {
+                        Text("Cancel")
+                    }
+                }
+            }
+        )
+    }
+}
+
+/**
+ * Send password reset email with Firebase Authentication
+ */
+private fun sendPasswordResetEmail(
+    auth: FirebaseAuth,
+    email: String,
+    onSuccess: () -> Unit,
+    onError: (String) -> Unit
+) {
+    auth.sendPasswordResetEmail(email)
+        .addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                onSuccess()
+            } else {
+                onError(task.exception?.message ?: "Failed to send reset email")
+            }
+        }
 }
 
 /**
