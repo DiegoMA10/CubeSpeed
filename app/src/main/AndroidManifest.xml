@@ -42,7 +42,6 @@
                 android:configChanges="mcc|mnc|locale|touchscreen|keyboard|keyboardHidden|navigation|orientation|screenLayout|uiMode|screenSize|smallestScreenSize|fontScale|layoutDirection|density"
                 android:hardwareAccelerated="false"
                 android:resizeableActivity="true"
-                android:screenOrientation="fullUser"
                 android:theme="@style/BaseUnityGameActivityTheme"
                 android:parentActivityName=".MainActivity">
             <meta-data android:name="unityplayer.UnityActivity" android:value="true"/>

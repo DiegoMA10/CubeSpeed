@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import com.example.cubespeed.repository.FirebaseRepository
 import com.example.cubespeed.state.AppState
 import com.example.cubespeed.ui.theme.dialogButtonTextColor
 import com.example.cubespeed.ui.theme.isAppInLightTheme
@@ -91,6 +92,9 @@ fun TagInputDialog(
     // Coroutine scope for async operations
     val coroutineScope = rememberCoroutineScope()
 
+    // Create an instance of FirebaseRepository
+    val firebaseRepository = remember { FirebaseRepository() }
+
     // Effect to load tags from Firestore
     LaunchedEffect(Unit) {
         loadTags { loadedTags ->
@@ -124,27 +128,20 @@ fun TagInputDialog(
 
     // Function to delete a tag from Firestore
     fun deleteTag(tag: String, onTagDeleted: () -> Unit) {
-        val userId = Firebase.auth.currentUser?.uid
-        if (userId != null && tag.isNotEmpty()) {
+        if (tag.isNotEmpty()) {
             coroutineScope.launch {
                 try {
-                    // Find the tag document
-                    val querySnapshot = Firebase.firestore.collection("users")
-                        .document(userId)
-                        .collection("tags")
-                        .whereEqualTo("name", tag)
-                        .get()
-                        .await()
+                    // Use FirebaseRepository to remove the tag and all associated solves and statistics
+                    val success = firebaseRepository.removeTag(tag)
 
-                    // Delete the tag document
-                    for (document in querySnapshot.documents) {
-                        document.reference.delete().await()
-                    }
-
-                    // Reload tags
-                    loadTags { loadedTags ->
-                        tags = loadedTags
-                        onTagDeleted()
+                    if (success) {
+                        // Reload tags
+                        loadTags { loadedTags ->
+                            tags = loadedTags
+                            onTagDeleted()
+                        }
+                    } else {
+                        // Handle error - tag removal failed
                     }
                 } catch (e: Exception) {
                     // Handle error
