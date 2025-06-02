@@ -1,9 +1,12 @@
+@file:Suppress("DEPRECATION")
+
 package com.example.cubespeed.ui.screens.login
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -19,6 +22,7 @@ import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -29,18 +33,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.cubespeed.R
-import com.example.cubespeed.ui.theme.BlueGradient
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.GoogleAuthProvider
-import com.google.firebase.auth.ktx.auth
-import com.google.firebase.ktx.Firebase
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.ui.platform.LocalContext
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.ktx.Firebase
 
 /**
  * Login screen composable
@@ -82,30 +82,17 @@ fun LoginScreen(
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
-        try {
-            val account = task.getResult(ApiException::class.java)
-            val idToken = account.idToken
-            if (idToken != null) {
-                // Got an ID token from Google. Use it to authenticate with Firebase.
-                val firebaseCredential = GoogleAuthProvider.getCredential(idToken, null)
-                auth.signInWithCredential(firebaseCredential)
-                    .addOnCompleteListener { task ->
-                        if (task.isSuccessful) {
-                            onLoginSuccess()
-                        } else {
-                            errorMessage = task.exception?.message ?: "Google authentication failed"
-                            isLoading = false
-                        }
-                    }
-            } else {
-                errorMessage = "Google Sign In failed: No ID token"
+        handleGoogleSignInResult(
+            result = result,
+            auth = auth,
+            onSuccess = {
+                onLoginSuccess()
+            },
+            onError = { error ->
+                errorMessage = error
                 isLoading = false
             }
-        } catch (e: ApiException) {
-            errorMessage = "Google Sign In failed: ${e.message}"
-            isLoading = false
-        }
+        )
     }
 
     Box(
@@ -364,14 +351,12 @@ fun LoginScreen(
 
                     // Google login button
                     OutlinedButton(
-                        onClick = { 
-                            isLoading = true
-                            errorMessage = null
-                            // Sign out from Google first to ensure account picker is shown
-                            googleSignInClient.signOut().addOnCompleteListener {
-                                // Then launch the sign-in intent
-                                launcher.launch(googleSignInClient.signInIntent)
-                            }
+                        onClick = {
+                            signInWithGoogle(
+                                googleSignInClient = googleSignInClient,
+                                launcher = launcher,
+                                onLoading = { loading -> isLoading = loading }
+                            )
                         },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -430,18 +415,18 @@ fun LoginScreen(
     // Password Reset Dialog
     if (showPasswordResetDialog) {
         AlertDialog(
-            onDismissRequest = { 
+            onDismissRequest = {
                 showPasswordResetDialog = false
                 resetEmail = ""
                 resetEmailSent = false
                 resetErrorMessage = null
             },
-            title = { 
+            title = {
                 Text(
                     text = if (resetEmailSent) "Email Sent" else "Reset Password",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold
-                ) 
+                )
             },
             text = {
                 Column(
@@ -503,7 +488,7 @@ fun LoginScreen(
             confirmButton = {
                 if (resetEmailSent) {
                     TextButton(
-                        onClick = { 
+                        onClick = {
                             showPasswordResetDialog = false
                             resetEmail = ""
                             resetEmailSent = false
@@ -521,7 +506,8 @@ fun LoginScreen(
                                 // Send password reset email
                                 isLoading = true
                                 resetErrorMessage = null
-                                sendPasswordResetEmail(auth, resetEmail, 
+                                sendPasswordResetEmail(
+                                    auth, resetEmail,
                                     onSuccess = {
                                         isLoading = false
                                         resetEmailSent = true
@@ -549,7 +535,7 @@ fun LoginScreen(
             dismissButton = {
                 if (!resetEmailSent) {
                     TextButton(
-                        onClick = { 
+                        onClick = {
                             showPasswordResetDialog = false
                             resetEmail = ""
                             resetErrorMessage = null
@@ -600,4 +586,52 @@ private fun loginUser(
                 onError(task.exception?.message ?: "Authentication failed")
             }
         }
+}
+
+/**
+ * Sign in with Google using Firebase Authentication
+ */
+private fun signInWithGoogle(
+    googleSignInClient: GoogleSignInClient,
+    launcher: androidx.activity.result.ActivityResultLauncher<android.content.Intent>,
+    onLoading: (Boolean) -> Unit
+) {
+    onLoading(true)
+    // Sign out from Google first to ensure account picker is shown
+    googleSignInClient.signOut().addOnCompleteListener {
+        // Then launch the sign-in intent
+        launcher.launch(googleSignInClient.signInIntent)
+    }
+}
+
+/**
+ * Handle Google Sign-In result and authenticate with Firebase
+ */
+private fun handleGoogleSignInResult(
+    result: androidx.activity.result.ActivityResult,
+    auth: FirebaseAuth,
+    onSuccess: () -> Unit,
+    onError: (String) -> Unit
+) {
+    val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+    try {
+        val account = task.getResult(ApiException::class.java)
+        val idToken = account.idToken
+        if (idToken != null) {
+            // Got an ID token from Google. Use it to authenticate with Firebase.
+            val firebaseCredential = GoogleAuthProvider.getCredential(idToken, null)
+            auth.signInWithCredential(firebaseCredential)
+                .addOnCompleteListener { task ->
+                    if (task.isSuccessful) {
+                        onSuccess()
+                    } else {
+                        onError(task.exception?.message ?: "Google authentication failed")
+                    }
+                }
+        } else {
+            onError("Google Sign In failed: No ID token")
+        }
+    } catch (e: ApiException) {
+        onError("Google Sign In failed: ${e.message}")
+    }
 }

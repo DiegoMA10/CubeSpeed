@@ -421,7 +421,8 @@ exports.updateStatsOnSolve = onDocumentWritten(
         if (!event.data.before && !solveData.timestamp) {
             // Get a reference to the solve document
             const db = admin.firestore();
-            const solveRef = db.collection("users").doc(userId).collection("solves").doc(solveId);
+            const solveRef = db.collection("users")
+                .doc(userId).collection("solves").doc(solveId);
 
             // Update the timestamp field with server timestamp
             await solveRef.update({

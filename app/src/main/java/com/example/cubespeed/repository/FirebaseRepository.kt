@@ -3,8 +3,8 @@ package com.example.cubespeed.repository
 import android.util.Log
 import com.example.cubespeed.model.CubeType
 import com.example.cubespeed.model.Solve
-import com.example.cubespeed.model.SolveStatus
 import com.example.cubespeed.model.SolveStatistics
+import com.example.cubespeed.model.SolveStatus
 import com.example.cubespeed.ui.screens.history.enums.SortOrder
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
@@ -81,8 +81,6 @@ class FirebaseRepository {
                 newSolveRef
             }
 
-            // Update stats
-            updateStats(currentUser.uid, solve.cube, solve.tagId)
 
             // Return the ID of the saved solve
             return solveRef.id
@@ -92,21 +90,6 @@ class FirebaseRepository {
         }
     }
 
-    /**
-     * Updates the statistics for a specific cube and tag
-     *
-     * Note: Statistics are calculated by Firebase Functions written in Node.js.
-     * The functions are triggered automatically when a solve is added, updated, or deleted.
-     * See the 'functions/index.js' file for the implementation.
-     *
-     * The app observes the stats document in Firestore for real-time updates
-     * using snapshot listeners in the UI components.
-     *
-     * This method is a no-op as the statistics are calculated automatically.
-     */
-    private suspend fun updateStats(userId: String, cubeType: CubeType, tagId: String) {
-        // No action needed here as the function is triggered automatically
-    }
 
     /**
      * Gets statistics for a specific cube type and tag
@@ -267,7 +250,7 @@ class FirebaseRepository {
             solveRef.delete().await()
 
             // Update stats
-            updateStats(currentUser.uid, cubeType, tagId)
+
 
             // Check if this was the last solve for this cube type and tag
             val remainingSolves = countSolvesByCubeTypeAndTag(cubeType, tagId)
@@ -541,7 +524,7 @@ class FirebaseRepository {
 
                 // Update stats for this cube type and tag
                 val (cubeType, tagId) = cubeTypeTagPair
-                updateStats(currentUser.uid, cubeType, tagId)
+
 
                 // Check if this was the last solve for this cube type and tag
                 val remainingSolves = countSolvesByCubeTypeAndTag(cubeType, tagId)
