@@ -312,17 +312,23 @@ private fun EditScrambleDialog(
                     horizontalArrangement = Arrangement.End
                 ) {
                     TextButton(
-                        onClick = onDismiss
+                        onClick = onDismiss,
+                        colors = ButtonDefaults.textButtonColors(
+                            contentColor = MaterialTheme.colorScheme.onBackground
+                        )
                     ) {
-                        Text("Cancelar")
+                        Text("Cancel")
                     }
 
                     Spacer(modifier = Modifier.width(8.dp))
 
-                    Button(
-                        onClick = onConfirm
+                    TextButton(
+                        onClick = onConfirm,
+                        colors = ButtonDefaults.textButtonColors(
+                            contentColor = MaterialTheme.colorScheme.onBackground
+                        )
                     ) {
-                        Text("Guardar")
+                        Text("Save")
                     }
                 }
             }

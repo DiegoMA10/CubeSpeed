@@ -23,6 +23,7 @@ import androidx.compose.ui.zIndex
 import com.example.cubespeed.ui.components.FixedSizeAnimatedVisibility
 import com.example.cubespeed.ui.screens.timer.dialogs.CommentDialog
 import com.example.cubespeed.ui.screens.timer.viewmodels.TimerViewModel
+import com.example.cubespeed.state.AppState
 import kotlinx.coroutines.delay
 
 /**
@@ -48,8 +49,8 @@ fun TimerComponent(
     // Movement threshold in pixels - movements smaller than this won't count
     val movementThreshold = 10f
 
-    // Horizontal movement threshold - smaller threshold for detecting paging
-    val horizontalPagingThreshold = 3f
+    // Horizontal movement threshold - higher threshold to only detect actual scrolling
+    val horizontalPagingThreshold = 15f
 
     // Get the current context
     val context = LocalContext.current
@@ -186,24 +187,18 @@ fun TimerComponent(
 
                                 PointerEventType.Move -> {
                                     // If the screen is pressed and the timer is not running,
-                                    // check if the movement exceeds the threshold for paging
+                                    // check if the pager is actually scrolling
                                     if (viewModel.isScreenPressed && !viewModel.isRunning) {
-                                        val position = event.changes.first().position
-
-                                        // Check for paging
-                                        if (viewModel.checkForPaging(
-                                                position.x,
-                                                position.y,
-                                                horizontalPagingThreshold
-                                            )
-                                        ) {
-                                            // This is likely a paging gesture (horizontal swipe)
+                                        // Check if the pager is actually scrolling (detected by MainTabsScreen)
+                                        if (AppState.isPagerScrolling) {
+                                            // The pager is actually scrolling, so mark as paging
                                             viewModel.isPaging = true
                                             viewModel.hasMovedWhilePressed = true
 
                                             // Restore previous state immediately when paging starts
                                             viewModel.restorePreviousState()
                                         }
+                                        // No fallback to distance-based detection as per user request
                                     }
                                 }
 
@@ -212,10 +207,14 @@ fun TimerComponent(
                                         // Set isScreenPressed to false
                                         viewModel.isScreenPressed = false
 
-                                        if (viewModel.isPaging) {
-                                            // If paging was detected, don't start the timer
+                                        // Only check if the pager is actually scrolling (detected by MainTabsScreen)
+                                        if (AppState.isPagerScrolling) {
+                                            // If the pager is actually scrolling, don't start the timer
+                                            // and restore previous state
+                                            viewModel.restorePreviousState()
                                         } else {
-                                            // Start the timer if paging was not detected
+                                            // Start the timer if the pager is not scrolling
+                                            // Ignore distance-based detection as per user request
                                             viewModel.startTimer()
                                             viewModel.setCooldown(70)
                                         }

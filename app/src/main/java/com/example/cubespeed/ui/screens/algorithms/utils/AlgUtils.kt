@@ -1,4 +1,4 @@
-package com.example.cubespeed.utils
+package com.example.cubespeed.ui.screens.algorithms.utils
 
 import android.content.Context
 import android.graphics.Color

@@ -20,6 +20,9 @@ object AppState {
     // Trigger to refresh history screen when a new solve is added
     var historyRefreshTrigger by mutableLongStateOf(0L)
 
+    // State to track when the pager is scrolling
+    var isPagerScrolling by mutableStateOf(false)
+
     // SharedPreferences reference
     private var sharedPreferences: SharedPreferences? = null
 

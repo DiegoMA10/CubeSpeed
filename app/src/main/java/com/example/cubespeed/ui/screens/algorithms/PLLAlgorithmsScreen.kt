@@ -5,7 +5,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
@@ -21,12 +23,13 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavController
 import com.example.cubespeed.ui.components.PLLView
+import com.example.cubespeed.ui.screens.algorithms.utils.AlgUtils
 import com.example.cubespeed.ui.theme.isAppInLightTheme
-import com.example.cubespeed.utils.AlgUtils
+import com.example.cubespeed.ui.utils.ScreenUtils
 
 /**
  * Screen that displays PLL algorithms with a custom top bar
- * 
+ *
  * @param navController Navigation controller for navigating back
  */
 @Composable
@@ -189,6 +192,12 @@ private fun PLLAlgorithmDetailDialogImpl(
     // Split algorithm by line breaks
     val algorithmLines = algorithm.split("\n")
 
+    // Check if we're in landscape mode
+    val isLandscape = ScreenUtils.isLandscape()
+
+    // Use a slightly wider card in landscape mode to fit solution texts
+    val dialogWidth = if (isLandscape) 280.dp else 340.dp
+
     Dialog(onDismissRequest = onDismiss) {
         Box(
             modifier = Modifier
@@ -199,7 +208,7 @@ private fun PLLAlgorithmDetailDialogImpl(
             // White card in the center
             Card(
                 modifier = Modifier
-                    .width(340.dp) // Wider card
+                    .width(dialogWidth) // Responsive width based on orientation
                     .clickable(enabled = false) { /* Prevent clicks from passing through */ },
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(
@@ -212,13 +221,20 @@ private fun PLLAlgorithmDetailDialogImpl(
                 Column(
                     modifier = Modifier
                         .padding(16.dp)
-                        .fillMaxWidth(),
+                        .fillMaxWidth()
+                        .then(
+                            if (isLandscape) {
+                                Modifier.verticalScroll(rememberScrollState())
+                            } else {
+                                Modifier
+                            }
+                        ),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     // Case name without background
                     Text(
                         text = caseName,
-                        fontSize = 22.sp,
+                        fontSize = if (isLandscape) 18.sp else 22.sp, // Smaller font in landscape
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface,
                         textAlign = TextAlign.Center,
@@ -236,7 +252,7 @@ private fun PLLAlgorithmDetailDialogImpl(
                         color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f)
                     )
 
-                    // Display the PLL view with a smaller size
+                    // Display the PLL view with a responsive size
                     Box(
                         modifier = Modifier
                             .padding(bottom = 16.dp)
@@ -246,7 +262,7 @@ private fun PLLAlgorithmDetailDialogImpl(
                         PLLView(
                             state = caseState,
                             pllCase = caseName,
-                            size = 180.dp, // Smaller size
+                            size = if (isLandscape) 100.dp else 180.dp, // Even smaller size in landscape
                             gap = 5.dp,
                             cornerRadius = 5.dp
                         )
@@ -261,7 +277,7 @@ private fun PLLAlgorithmDetailDialogImpl(
                     ) {
                         Text(
                             text = "Solutions:",
-                            fontSize = 16.sp,
+                            fontSize = if (isLandscape) 14.sp else 16.sp, // Smaller font in landscape
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.padding(bottom = 8.dp)
@@ -272,7 +288,7 @@ private fun PLLAlgorithmDetailDialogImpl(
                             if (line.isNotEmpty()) {
                                 Text(
                                     text = line,
-                                    fontSize = 12.sp, // Smaller font to fit on one line
+                                    fontSize = if (isLandscape) 10.sp else 12.sp, // Even smaller font in landscape
                                     fontFamily = FontFamily.Monospace,
                                     color = MaterialTheme.colorScheme.onSurface,
                                     modifier = Modifier.padding(vertical = 2.dp)

@@ -5,10 +5,12 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.example.cubespeed.model.CubeType
+import com.example.cubespeed.model.ScrambleGenerator
 import com.example.cubespeed.model.Solve
 import com.example.cubespeed.model.SolveStatus
 import com.example.cubespeed.repository.FirebaseRepository
 import com.example.cubespeed.state.AppState
+import kotlinx.coroutines.delay
 import com.google.firebase.Timestamp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -221,7 +223,7 @@ class TimerViewModel(
      */
     private suspend fun generateScramble(cubeType: CubeType): String {
         return withContext(Dispatchers.Default) {
-            com.example.cubespeed.model.ScrambleGenerator.getInstance().generateScramble(cubeType)
+            ScrambleGenerator.getInstance().generateScramble(cubeType)
         }
     }
 
@@ -358,6 +360,15 @@ class TimerViewModel(
         isPaging = false
         hasMovedWhilePressed = false
         isScreenPressed = false
+        // Reset initial press position to avoid false movement detection
+        initialPressX = 0f
+        initialPressY = 0f
+
+        // Reset the pager scrolling state with a small delay to ensure any ongoing scrolling is completed
+        coroutineScope.launch {
+            delay(100) // Small delay to ensure scrolling has stopped
+            AppState.isPagerScrolling = false
+        }
     }
 
     /**
@@ -370,13 +381,15 @@ class TimerViewModel(
 
     /**
      * Checks if the movement exceeds the threshold for paging.
+     * Only detects substantial movements that indicate actual scrolling has begun.
      */
     fun checkForPaging(x: Float, y: Float, horizontalPagingThreshold: Float): Boolean {
         val deltaX = kotlin.math.abs(x - initialPressX)
         val deltaY = kotlin.math.abs(y - initialPressY)
 
-        // Check for horizontal movement (likely paging)
-        return deltaX > horizontalPagingThreshold && deltaX > deltaY * 1.5f
+        // Check for substantial horizontal movement that indicates scrolling has begun
+        // Use the full threshold value and a stricter ratio check to ensure it's an intentional horizontal scroll
+        return deltaX > horizontalPagingThreshold && deltaX > deltaY * 2.0f
     }
 
     /**

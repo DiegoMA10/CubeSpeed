@@ -93,6 +93,22 @@ fun MainTabsScreen(
     val pagerState = rememberPagerState(initialPage = initialTab) { pages.size }
     val coroutineScope = rememberCoroutineScope()
 
+    // Observe pager scrolling state and update AppState
+    LaunchedEffect(pagerState) {
+        snapshotFlow { pagerState.isScrollInProgress }.collect { isScrolling ->
+            AppState.isPagerScrolling = isScrolling
+        }
+    }
+
+    // Also observe drag events to detect when scrolling is about to start
+    LaunchedEffect(Unit) {
+        snapshotFlow { pagerState.currentPageOffsetFraction }.collect { offset ->
+            // If there's any offset, it means the pager is being dragged
+            if (offset != 0f && !AppState.isPagerScrolling) {
+                AppState.isPagerScrolling = true
+            }
+        }
+    }
 
     // Show bottom navigation by default, hide only when timer is running
     // This is now handled by showWithDelay

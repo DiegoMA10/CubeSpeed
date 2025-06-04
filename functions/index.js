@@ -316,8 +316,6 @@ async function updateRecentSolves(db, userId, cubeType, tagId, currentRecentSolv
  * @param {boolean} isDelete - Whether this is a delete operation
  */
 async function recalculateStats(userId, cubeType, tagId, newSolve = null, isDelete = false) {
-    console.log(`Recalculating stats for user ${userId}, cube ${cubeType}, tag ${tagId}`);
-
     try {
         const db = admin.firestore();
         const statsRef = db.collection("users").doc(userId).collection("stats");
@@ -398,7 +396,7 @@ exports.updateStatsOnSolve = onDocumentWritten(
         const userId = event.params.userId;
         const solveId = event.params.solveId;
 
-        // Skip if document was deleted (handled by updateStatsOnDelete)
+        // Skip if a document was deleted (handled by updateStatsOnDelete)
         if (!event.data.after) {
             return null;
         }
@@ -414,17 +412,17 @@ exports.updateStatsOnSolve = onDocumentWritten(
             return null;
         }
 
-        // Add the document ID to the solve data
+        // Add the document ID to the solved data
         const solveWithId = {...solveData, id: solveId};
 
-        // If this is a new solve and timestamp is missing, add server timestamp
+        // If this is a newly solved and a timestamp is missing, add a server timestamp
         if (!event.data.before && !solveData.timestamp) {
-            // Get a reference to the solve document
+            // Get a reference to the solved document
             const db = admin.firestore();
             const solveRef = db.collection("users")
                 .doc(userId).collection("solves").doc(solveId);
 
-            // Update the timestamp field with server timestamp
+            // Update the timestamp field with the server timestamp
             await solveRef.update({
                 timestamp: FieldValue.serverTimestamp()
             });

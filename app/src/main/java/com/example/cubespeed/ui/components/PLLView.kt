@@ -17,7 +17,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.example.cubespeed.utils.AlgUtils
+import com.example.cubespeed.ui.screens.algorithms.utils.AlgUtils
 
 /**
  * PLL preview inspirado en CubeSpeed:
