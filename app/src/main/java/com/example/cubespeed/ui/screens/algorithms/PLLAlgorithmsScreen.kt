@@ -77,7 +77,7 @@ fun PLLAlgorithmsScreen(navController: NavController) {
                     )
                 }
                 Text(
-                    text = "Algoritmos",
+                    text = "Algorithms",
                     style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.onPrimary
                 )
