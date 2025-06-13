@@ -14,6 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -95,6 +96,10 @@ fun TagInputDialog(
     // Create an instance of FirebaseRepository
     val firebaseRepository = remember { FirebaseRepository() }
 
+    // Get the current configuration to determine screen orientation
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+
     // Effect to load tags from Firestore
     LaunchedEffect(Unit) {
         loadTags { loadedTags ->
@@ -159,159 +164,179 @@ fun TagInputDialog(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp)
+                .heightIn(max = 600.dp) // Set maximum height for the dialog
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp)
             ) {
-                Text(
-                    text = "Select Tag",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
-
-                // Show add tag input if requested
-                if (showAddTagInput) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        OutlinedTextField(
-                            value = newTagInput,
-                            onValueChange = { newTagInput = it },
-                            label = { Text("New Tag") },
-                            modifier = Modifier
-                                .weight(1f)
-                                .padding(end = 8.dp)
-                        )
-
-                        IconButton(
-                            onClick = {
-                                if (newTagInput.isNotEmpty()) {
-                                    addTag(newTagInput) {
-                                        selectedTag = newTagInput
-                                        newTagInput = ""
-                                        showAddTagInput = false
-                                    }
-                                }
-                            }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Add,
-                                contentDescription = "Add Tag",
-                                tint = if (isAppInLightTheme) Color.Gray else MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                    }
-                }
-
-                // List of tags
-                LazyColumn(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(max = 300.dp)
                 ) {
-                    items(tags) { tag ->
-                        Row(
+                    // Header
+                    Text(
+                        text = "Select Tag",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+
+                    // Scrollable content with fixed height to ensure buttons remain visible
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(if (isLandscape) 180.dp else 250.dp) // Adjust height based on orientation
+                    ) {
+                        Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable {
-                                    selectedTag = tag
-                                }
-                                .padding(vertical = 12.dp, horizontal = 16.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
+                                .fillMaxHeight() // Fill the Box height
                         ) {
-                            Text(
-                                text = tag,
-                                style = MaterialTheme.typography.bodyLarge
-                            )
+                            // Show add tag input if requested
+                            if (showAddTagInput) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(bottom = 16.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    OutlinedTextField(
+                                        value = newTagInput,
+                                        onValueChange = { newTagInput = it },
+                                        label = { Text("New Tag") },
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .padding(end = 8.dp)
+                                    )
 
-                            Row {
-                                // Show a checkmark for the currently selected tag
-                                if (tag == selectedTag) {
-                                    Box(
-                                        modifier = Modifier.size(48.dp),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Check,
-                                            contentDescription = "Selected",
-                                            tint = if (isAppInLightTheme) Color.Gray else MaterialTheme.colorScheme.primary
-                                        )
-                                    }
-                                }
-
-                                // Delete icon (hide for "normal" tag)
-                                if (tag != "normal") {
                                     IconButton(
                                         onClick = {
-                                            tagToDelete = tag
-                                            showDeleteConfirmation = true
+                                            if (newTagInput.isNotEmpty()) {
+                                                addTag(newTagInput) {
+                                                    selectedTag = newTagInput
+                                                    newTagInput = ""
+                                                    showAddTagInput = false
+                                                }
+                                            }
                                         }
                                     ) {
                                         Icon(
-                                            imageVector = Icons.Default.Delete,
-                                            contentDescription = "Delete Tag",
-                                            tint = if (isAppInLightTheme) Color.Gray else MaterialTheme.colorScheme.error
+                                            imageVector = Icons.Default.Add,
+                                            contentDescription = "Add Tag",
+                                            tint = if (isAppInLightTheme) Color.Gray else MaterialTheme.colorScheme.onSurface
+                                        )
+                                    }
+                                }
+                            }
+
+                            // List of tags - make it scrollable within the fixed height container
+                            LazyColumn(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .fillMaxHeight() // Fill available height in the Box for proper scrolling
+                            ) {
+                                items(tags) { tag ->
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable {
+                                                selectedTag = tag
+                                            }
+                                            .padding(vertical = 12.dp, horizontal = 16.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text(
+                                            text = tag,
+                                            style = MaterialTheme.typography.bodyLarge
+                                        )
+
+                                        Row {
+                                            // Show a checkmark for the currently selected tag
+                                            if (tag == selectedTag) {
+                                                Box(
+                                                    modifier = Modifier.size(48.dp),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Check,
+                                                        contentDescription = "Selected",
+                                                        tint = if (isAppInLightTheme) Color.Gray else MaterialTheme.colorScheme.primary
+                                                    )
+                                                }
+                                            }
+
+                                            // Delete icon (hide for "normal" tag)
+                                            if (tag != "normal") {
+                                                IconButton(
+                                                    onClick = {
+                                                        tagToDelete = tag
+                                                        showDeleteConfirmation = true
+                                                    }
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Delete,
+                                                        contentDescription = "Delete Tag",
+                                                        tint = if (isAppInLightTheme) Color.Gray else MaterialTheme.colorScheme.error
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    // Add a divider between items
+                                    if (tag != tags.lastOrNull()) {
+                                        Divider(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 16.dp),
+                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
                                         )
                                     }
                                 }
                             }
                         }
-
-                        // Add a divider between items
-                        if (tag != tags.lastOrNull()) {
-                            Divider(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp),
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
-                            )
-                        }
                     }
-                }
 
-                // Buttons row
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    // Add tag button
-                    TextButton(
-                        onClick = {
-                            showAddTagInput = !showAddTagInput
-                            if (!showAddTagInput) {
-                                newTagInput = ""
-                            }
-                        }
+                    // Fixed buttons row at the bottom
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text(if (showAddTagInput) "Cancel" else "Add Tag", color = dialogButtonTextColor)
-                    }
-
-                    // Action buttons
-                    Row {
-                        TextButton(
-                            onClick = onDismiss
-                        ) {
-                            Text("Cancel", color = dialogButtonTextColor)
-                        }
-
-                        Spacer(modifier = Modifier.width(8.dp))
-
+                        // Add tag button
                         TextButton(
                             onClick = {
-                                onTagConfirmed(selectedTag)
-                                AppState.updateTag(selectedTag)
+                                showAddTagInput = !showAddTagInput
+                                if (!showAddTagInput) {
+                                    newTagInput = ""
+                                }
                             }
                         ) {
-                            Text("Confirm", color = dialogButtonTextColor)
+                            Text(if (showAddTagInput) "Cancel" else "Add Tag", color = dialogButtonTextColor)
+                        }
+
+                        // Action buttons
+                        Row {
+                            TextButton(
+                                onClick = onDismiss
+                            ) {
+                                Text("Cancel", color = dialogButtonTextColor)
+                            }
+
+                            Spacer(modifier = Modifier.width(8.dp))
+
+                            TextButton(
+                                onClick = {
+                                    onTagConfirmed(selectedTag)
+                                    AppState.updateTag(selectedTag)
+                                }
+                            ) {
+                                Text("Confirm", color = dialogButtonTextColor)
+                            }
                         }
                     }
                 }
@@ -330,8 +355,14 @@ fun TagInputDialog(
                     onClick = {
                         deleteTag(tagToDelete) {
                             // If the deleted tag was selected, select the first available tag or "normal"
+                            // and automatically confirm the selection
                             if (selectedTag == tagToDelete) {
-                                selectedTag = tags.firstOrNull() ?: "normal"
+                                val newTag = "normal" // Default to "normal" tag
+                                selectedTag = newTag
+                                // Automatically confirm the selection
+                                onTagConfirmed(newTag)
+                                AppState.updateTag(newTag)
+                                onDismiss() // Close the dialog
                             }
                         }
                         showDeleteConfirmation = false
