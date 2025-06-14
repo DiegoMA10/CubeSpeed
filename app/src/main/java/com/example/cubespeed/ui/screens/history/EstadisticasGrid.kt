@@ -58,8 +58,11 @@ fun EstadisticasGrid(
     // Remember the last index we've seen
     var lastVisibleItemIndex by remember { mutableStateOf(0) }
 
+    // Check if we're in landscape mode to determine the number of columns
+    val isLandscape = com.example.cubespeed.ui.utils.ScreenUtils.isLandscape()
+
     LazyVerticalGrid(
-        columns = GridCells.Fixed(3),
+        columns = GridCells.Fixed(if (isLandscape) 5 else 3),
         modifier = modifier.fillMaxWidth(),
         contentPadding = PaddingValues(8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),

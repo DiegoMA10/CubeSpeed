@@ -92,8 +92,11 @@ fun PLLAlgorithmsScreen(navController: NavController) {
         ) {
 
             // Grid of PLL cases with improved styling
+            // Check if we're in landscape mode to determine the number of columns
+            val isLandscape = ScreenUtils.isLandscape()
+
             LazyVerticalGrid(
-                columns = GridCells.Fixed(3),
+                columns = GridCells.Fixed(if (isLandscape) 5 else 3),
                 contentPadding = PaddingValues(4.dp),
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),

@@ -90,6 +90,9 @@ fun TagInputDialog(
     // State for the tag to delete
     var tagToDelete by remember { mutableStateOf("") }
 
+    // State for error message when adding a tag
+    var tagError by remember { mutableStateOf("") }
+
     // Coroutine scope for async operations
     val coroutineScope = rememberCoroutineScope()
 
@@ -98,12 +101,26 @@ fun TagInputDialog(
 
     // Get the current configuration to determine screen orientation
     val configuration = LocalConfiguration.current
-    val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+    val screenWidth = configuration.screenWidthDp
+    val screenHeight = configuration.screenHeightDp
+
+    // More robust landscape detection using both orientation and screen dimensions
+    val orientationBasedLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+    val dimensionBasedLandscape = screenWidth > screenHeight
+    val isLandscape = orientationBasedLandscape || dimensionBasedLandscape
+
+    // Debug logging for orientation detection
+    println("[DEBUG_LOG] Screen dimensions: ${screenWidth}x${screenHeight}")
+    println("[DEBUG_LOG] Orientation-based landscape: $orientationBasedLandscape")
+    println("[DEBUG_LOG] Dimension-based landscape: $dimensionBasedLandscape")
+    println("[DEBUG_LOG] Final isLandscape: $isLandscape")
 
     // Effect to load tags from Firestore
     LaunchedEffect(Unit) {
         loadTags { loadedTags ->
             tags = loadedTags
+            // Debug log to verify tags are loaded
+            println("[DEBUG_LOG] Loaded tags: $loadedTags")
         }
     }
 
@@ -162,9 +179,9 @@ fun TagInputDialog(
             tonalElevation = if (isAppInLightTheme) 4.dp else 0.dp,
             shadowElevation = if (isAppInLightTheme) 4.dp else 0.dp,
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxWidth(1f) // Using full width in both orientations for better visibility
                 .padding(16.dp)
-                .heightIn(max = 600.dp) // Set maximum height for the dialog
+                .heightIn(max = if (isLandscape) 400.dp else 600.dp) // Adjust maximum height based on orientation
         ) {
             Column(
                 modifier = Modifier
@@ -187,7 +204,7 @@ fun TagInputDialog(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(if (isLandscape) 180.dp else 250.dp) // Adjust height based on orientation
+                            .height(if (isLandscape) 150.dp else 350.dp) // Increased height in portrait mode for better tag visibility
                     ) {
                         Column(
                             modifier = Modifier
@@ -204,20 +221,37 @@ fun TagInputDialog(
                                 ) {
                                     OutlinedTextField(
                                         value = newTagInput,
-                                        onValueChange = { newTagInput = it },
+                                        onValueChange = { 
+                                            newTagInput = it
+                                            // Clear error when user types
+                                            if (tagError.isNotEmpty()) {
+                                                tagError = ""
+                                            }
+                                        },
                                         label = { Text("New Tag") },
                                         modifier = Modifier
                                             .weight(1f)
-                                            .padding(end = 8.dp)
+                                            .padding(end = 8.dp),
+                                        isError = tagError.isNotEmpty()
                                     )
 
                                     IconButton(
                                         onClick = {
-                                            if (newTagInput.isNotEmpty()) {
-                                                addTag(newTagInput) {
-                                                    selectedTag = newTagInput
-                                                    newTagInput = ""
-                                                    showAddTagInput = false
+                                            val trimmedInput = newTagInput.trim()
+                                            if (trimmedInput.isNotEmpty()) {
+                                                // Check if any existing tag matches the trimmed input (case-insensitive)
+                                                val tagExists = tags.any { it.trim().equals(trimmedInput, ignoreCase = true) }
+                                                if (!tagExists) {
+                                                    addTag(trimmedInput) {
+                                                        selectedTag = trimmedInput
+                                                        newTagInput = ""
+                                                        tagError = "" // Clear any previous error
+                                                        // Return to the initial "Add Tag" state
+                                                        showAddTagInput = false
+                                                    }
+                                                } else {
+                                                    // Show error for duplicate tag
+                                                    tagError = "Tag already exists"
                                                 }
                                             }
                                         }
@@ -228,6 +262,16 @@ fun TagInputDialog(
                                             tint = if (isAppInLightTheme) Color.Gray else MaterialTheme.colorScheme.onSurface
                                         )
                                     }
+                                }
+
+                                // Display error message if there is one
+                                if (tagError.isNotEmpty()) {
+                                    Text(
+                                        text = tagError,
+                                        color = MaterialTheme.colorScheme.error,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
+                                    )
                                 }
                             }
 
@@ -300,42 +344,98 @@ fun TagInputDialog(
                         }
                     }
 
-                    // Fixed buttons row at the bottom
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 16.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        // Add tag button
-                        TextButton(
-                            onClick = {
-                                showAddTagInput = !showAddTagInput
-                                if (!showAddTagInput) {
-                                    newTagInput = ""
-                                }
-                            }
+                    // Buttons layout that adapts to orientation
+                    if (isLandscape) {
+                        // In landscape mode, use a row layout similar to portrait mode but with adjusted spacing
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 16.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(if (showAddTagInput) "Cancel" else "Add Tag", color = dialogButtonTextColor)
-                        }
-
-                        // Action buttons
-                        Row {
-                            TextButton(
-                                onClick = onDismiss
-                            ) {
-                                Text("Cancel", color = dialogButtonTextColor)
-                            }
-
-                            Spacer(modifier = Modifier.width(8.dp))
-
+                            // Add tag button
                             TextButton(
                                 onClick = {
-                                    onTagConfirmed(selectedTag)
-                                    AppState.updateTag(selectedTag)
+                                    showAddTagInput = !showAddTagInput
+                                    if (!showAddTagInput) {
+                                        newTagInput = ""
+                                    }
                                 }
                             ) {
-                                Text("Confirm", color = dialogButtonTextColor)
+                                Text(
+                                    if (showAddTagInput) "Cancel" else "Add Tag", 
+                                    color = dialogButtonTextColor,
+                                    modifier = Modifier.padding(horizontal = 4.dp)
+                                )
+                            }
+
+                            // Action buttons
+                            Row {
+                                TextButton(
+                                    onClick = onDismiss
+                                ) {
+                                    Text(
+                                        "Cancel", 
+                                        color = dialogButtonTextColor,
+                                        modifier = Modifier.padding(horizontal = 4.dp)
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.width(4.dp))
+
+                                TextButton(
+                                    onClick = {
+                                        onTagConfirmed(selectedTag)
+                                        AppState.updateTag(selectedTag)
+                                    }
+                                ) {
+                                    Text(
+                                        "Confirm", 
+                                        color = dialogButtonTextColor,
+                                        modifier = Modifier.padding(horizontal = 4.dp)
+                                    )
+                                }
+                            }
+                        }
+                    } else {
+                        // In portrait mode, keep the original layout
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 16.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            // Add tag button
+                            TextButton(
+                                onClick = {
+                                    showAddTagInput = !showAddTagInput
+                                    if (!showAddTagInput) {
+                                        newTagInput = ""
+                                    }
+                                }
+                            ) {
+                                Text(if (showAddTagInput) "Cancel" else "Add Tag", color = dialogButtonTextColor)
+                            }
+
+                            // Action buttons
+                            Row {
+                                TextButton(
+                                    onClick = onDismiss
+                                ) {
+                                    Text("Cancel", color = dialogButtonTextColor)
+                                }
+
+                                Spacer(modifier = Modifier.width(8.dp))
+
+                                TextButton(
+                                    onClick = {
+                                        onTagConfirmed(selectedTag)
+                                        AppState.updateTag(selectedTag)
+                                    }
+                                ) {
+                                    Text("Confirm", color = dialogButtonTextColor)
+                                }
                             }
                         }
                     }

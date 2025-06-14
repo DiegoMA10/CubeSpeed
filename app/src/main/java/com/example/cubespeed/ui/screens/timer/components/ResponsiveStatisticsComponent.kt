@@ -125,7 +125,7 @@ fun ResponsiveStatisticsComponent(
             }
 
             // Return a function that removes the listener when disposed
-            return@DisposableEffect onDispose { 
+            return@DisposableEffect onDispose {
                 listener.remove() // Very important
             }
         }

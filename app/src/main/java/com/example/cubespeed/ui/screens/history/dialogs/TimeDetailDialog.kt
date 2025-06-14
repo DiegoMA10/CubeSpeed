@@ -3,7 +3,9 @@ package com.example.cubespeed.ui.screens.history.dialogs
 // Import the ScrambleVisualization composable
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -27,6 +29,7 @@ import com.example.cubespeed.ui.screens.history.models.ScrambleVisualization
 import com.example.cubespeed.ui.screens.timer.dialogs.CommentDialog
 import com.example.cubespeed.ui.screens.timer.utils.getEffectiveTime
 import com.example.cubespeed.ui.theme.isAppInLightTheme
+import com.example.cubespeed.ui.utils.ScreenUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -56,6 +59,9 @@ fun TimeDetailDialog(
     // Create repository and coroutine scope
     val repository = remember { FirebaseRepository() }
     val coroutineScope = rememberCoroutineScope()
+    // Check if we're in landscape mode
+    val isLandscape = ScreenUtils.isLandscape()
+
     // Semi-transparent black background
     Dialog(onDismissRequest = onDismiss) {
         Box(
@@ -64,10 +70,11 @@ fun TimeDetailDialog(
                 .clickable { onDismiss() },
             contentAlignment = Alignment.Center
         ) {
-            // White card in the center
+            // White card in the center with responsive width
             Card(
                 modifier = Modifier
-                    .width(300.dp)
+                    .width(if (isLandscape) 350.dp else 300.dp)
+                    .heightIn(max = if (isLandscape) 280.dp else 500.dp)
                     .clickable(enabled = false) { /* Prevent clicks from passing through */ },
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(
@@ -77,8 +84,11 @@ fun TimeDetailDialog(
                     defaultElevation = if (isAppInLightTheme) 4.dp else 0.dp
                 )
             ) {
+                // Make the content scrollable, especially important in landscape mode
                 Column(
-                    modifier = Modifier.padding(16.dp)
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .verticalScroll(rememberScrollState())
                 ) {
                     // Header: Time and Date
                     Row(
@@ -272,7 +282,9 @@ fun TimeDetailDialog(
                                 ScrambleVisualization(
                                     scramble = solve.scramble,
                                     cubeType = solve.cube,
-                                    modifier = Modifier.fillMaxWidth()
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .heightIn(max = if (isLandscape) 120.dp else 200.dp)
                                 )
                             }
                         }

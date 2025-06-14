@@ -12,7 +12,7 @@ object ScreenUtils {
     /**
      * Minimum width in dp to consider a device as a tablet.
      */
-    private const val TABLET_MIN_WIDTH_DP = 800
+    private const val TABLET_MIN_WIDTH_DP = 1000
 
     /**
      * Returns true if the device is a tablet, false otherwise.
