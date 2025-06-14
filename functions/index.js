@@ -242,34 +242,22 @@ async function updateRecentSolves(db, userId, cubeType, tagId, currentRecentSolv
             }
         }
     } else if (newSolve && isDelete) {
-        // For delete: Remove the solve from the array
+        // Remove the deleted solve from the array
         recentSolves = recentSolves.filter(solve => solve.id !== newSolve.id);
 
-        // Fetch one more solve if needed to maintain up to 100 solves
-        if (recentSolves.length < 100 && recentSolves.length < totalCount) {
-            try {
-                const oldestTimestamp = recentSolves.length > 0
-                    ? recentSolves[recentSolves.length - 1].timestamp
-                    : new Date().toISOString();
+        // Extra: remove any solves from recentSolves that no longer exist in Firestore
+        try {
+            const idsToCheck = recentSolves.map(s => s.id);
+            const solveRefs = idsToCheck.map(id =>
+                db.collection("users").doc(userId).collection("solves").doc(id)
+            );
 
-                const additionalSolveQuery = db.collection("users")
-                    .doc(userId)
-                    .collection("solves")
-                    .where("cube", "==", cubeType)
-                    .where("tagId", "==", tagId)
-                    .orderBy("timestamp", "desc")
-                    .startAfter(oldestTimestamp)
-                    .limit(1);
+            const solveSnapshots = await db.getAll(...solveRefs);
 
-                const additionalSolveSnapshot = await additionalSolveQuery.get();
-                if (!additionalSolveSnapshot.empty) {
-                    const additionalSolve = additionalSolveSnapshot.docs[0].data();
-                    additionalSolve.id = additionalSolveSnapshot.docs[0].id;
-                    recentSolves.push(additionalSolve);
-                }
-            } catch (e) {
-                console.error(`Error fetching additional solve: ${e}`);
-            }
+            // Keep only solves that still exist
+            recentSolves = recentSolves.filter((_, index) => solveSnapshots[index].exists);
+        } catch (e) {
+            console.error("Error validating recentSolves after delete:", e);
         }
     }
 
