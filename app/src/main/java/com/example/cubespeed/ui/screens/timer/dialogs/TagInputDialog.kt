@@ -181,7 +181,7 @@ fun TagInputDialog(
             modifier = Modifier
                 .fillMaxWidth(1f) // Using full width in both orientations for better visibility
                 .padding(16.dp)
-                .heightIn(max = if (isLandscape) 400.dp else 600.dp) // Adjust maximum height based on orientation
+            // Adjust maximum height based on orientation
         ) {
             Column(
                 modifier = Modifier
@@ -204,7 +204,7 @@ fun TagInputDialog(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(if (isLandscape) 150.dp else 350.dp) // Increased height in portrait mode for better tag visibility
+                            .height(if (isLandscape) 150.dp else 150.dp) // Increased height in portrait mode for better tag visibility
                     ) {
                         Column(
                             modifier = Modifier
@@ -221,7 +221,7 @@ fun TagInputDialog(
                                 ) {
                                     OutlinedTextField(
                                         value = newTagInput,
-                                        onValueChange = { 
+                                        onValueChange = {
                                             newTagInput = it
                                             // Clear error when user types
                                             if (tagError.isNotEmpty()) {
@@ -240,7 +240,8 @@ fun TagInputDialog(
                                             val trimmedInput = newTagInput.trim()
                                             if (trimmedInput.isNotEmpty()) {
                                                 // Check if any existing tag matches the trimmed input (case-insensitive)
-                                                val tagExists = tags.any { it.trim().equals(trimmedInput, ignoreCase = true) }
+                                                val tagExists =
+                                                    tags.any { it.trim().equals(trimmedInput, ignoreCase = true) }
                                                 if (!tagExists) {
                                                     addTag(trimmedInput) {
                                                         selectedTag = trimmedInput
@@ -364,7 +365,7 @@ fun TagInputDialog(
                                 }
                             ) {
                                 Text(
-                                    if (showAddTagInput) "Cancel" else "Add Tag", 
+                                    if (showAddTagInput) "Cancel" else "Add Tag",
                                     color = dialogButtonTextColor,
                                     modifier = Modifier.padding(horizontal = 4.dp)
                                 )
@@ -376,7 +377,7 @@ fun TagInputDialog(
                                     onClick = onDismiss
                                 ) {
                                     Text(
-                                        "Cancel", 
+                                        "Cancel",
                                         color = dialogButtonTextColor,
                                         modifier = Modifier.padding(horizontal = 4.dp)
                                     )
@@ -391,7 +392,7 @@ fun TagInputDialog(
                                     }
                                 ) {
                                     Text(
-                                        "Confirm", 
+                                        "Confirm",
                                         color = dialogButtonTextColor,
                                         modifier = Modifier.padding(horizontal = 4.dp)
                                     )
